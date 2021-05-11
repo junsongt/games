@@ -13,8 +13,8 @@
 
 (define UNIT (square 20 "solid" "white"))
 (define FULLLINE-NUM (/ WIDTH (image-width UNIT)))
-(define DELTA (/ (image-width UNIT) 2))
-(define STEP (image-width UNIT))
+(define CELL (image-width UNIT))
+(define DELTA (/ CELL 2))
 (define SHAPE1 (above UNIT (beside UNIT UNIT UNIT)))
 (define SHAPE2 (above/align "left" UNIT (beside UNIT UNIT UNIT)))
 (define SHAPE3 (above/align "right" UNIT (beside UNIT UNIT UNIT)))
@@ -40,8 +40,8 @@
 (define BOTTOM (- HEIGHT DELTA))  ;lower boundary
 
 (define SPEED 2)   ;dropping speed of the shape per tick
-(define H-MOVE STEP) ;moving speed of the shape along x-axis
-(define V-MOVE STEP) ;moving speed of the shape along y-axis
+(define H-MOVE CELL) ;moving speed of the shape along x-axis
+(define V-MOVE CELL) ;moving speed of the shape along y-axis
 (define SCORE-FONT 10)       ;the font size of score
 (define SCORE-COLOR "white") ;the color of score
 
@@ -51,27 +51,28 @@
 
 ;;=========================================================================
 ;; Data definition
-(@htdd Point)
-(define-struct point (x y))
-;; Point is (make-point Number Number)
+(@htdd Cell)
+(define-struct cell (x y))
+;; Cell is (make-cell Number Number Boolean)
 ;; Number--x coordinate
 ;; Number--y coordiante
+;; Boolean--true if cell is taken
 
-(@htdd ListOfPoint)
+(@htdd ListOfCell)
 
 (@htdd Block)
-(define-struct block (x y points r s c))
-;; Block is (make-block Number Number ListOfPoint Integer Integer Integer)
-;;; Number--x coordinate
-;;; Number--y coordiante
-;;; ListOfPoint--
+(define-struct block (x y cells r s c))
+;; Block is (make-block Number Number ListOfCell Integer Integer Integer)
+;;; Number--central-x coordinate
+;;; Number--central-y coordiante
+;;; ListOfCell--
 ;;; Integer--angle(0 90 180 270 360)
 ;;; Integer--shape number
 ;;; Integer--colour number
 ;(define (fn-for-block b)
 ;  (... (block-x b)
 ;       (block-y b)
-;       (fn-for-lop (block-points b))
+;       (fn-for-loc (block-cells b))
 ;       (block-r b)
 ;       (block-s b)       
 ;       (block-c b)))
@@ -81,75 +82,76 @@
 (@htdf generate-block)
 (@signature Number Number Number Number -> Block)
 (define (generate-block x y r s c)
-  (cond [(= s 0) (make-block x y
+  (cond [(= s 0) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-point x (- y DELTA))
-                              (make-point x (+ y DELTA))
-                              (make-point (- x (* 2 DELTA)) (+ y DELTA))
-                              (make-point (+ x (* 2 DELTA)) (+ y DELTA)))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x CELL) (- y CELL)))
                              r s c)]
         
-        [(= s 1) (make-block x y
+        [(= s 1) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-point (- x (* 2 DELTA)) (- y DELTA))
-                              (make-point (- x (* 2 DELTA)) (+ y DELTA))
-                              (make-point x (+ y DELTA))
-                              (make-point (+ x (* 2 DELTA)) (+ y DELTA)))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell x (- y CELL)))
                              r s c)]
         
-        [(= s 2) (make-block x y
+        [(= s 2) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-point (+ x (* 2 DELTA)) (- y DELTA))
-                              (make-point (- x (* 2 DELTA)) (+ y DELTA))
-                              (make-point x (+ y DELTA))
-                              (make-point (+ x (* 2 DELTA)) (+ y DELTA)))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x (* 2 CELL)) (- y CELL)))
                              r s c)]
         
-        [(= s 3) (make-block x y
+        [(= s 3) (make-block (+ x CELL DELTA) y
                              (list
-                              (make-point (- x (* 3 DELTA)) y)
-                              (make-point (- x DELTA) y)
-                              (make-point (+ x DELTA) y)
-                              (make-point (+ x (* 3 DELTA)) y))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x (* 3 CELL)) y))
                              r s c)]
         
-        [(= s 4) (make-block x y
+        [(= s 4) (make-block (+ x DELTA) (- y DELTA)
                              (list
-                              (make-point (- x DELTA) (- y DELTA))
-                              (make-point (+ x DELTA) (- y DELTA))
-                              (make-point (- x DELTA) (+ y DELTA))
-                              (make-point (+ x DELTA) (+ y DELTA)))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x CELL) (- y CELL))
+                              (make-cell x (- y CELL)))
                              r s c)]
         
-        [(= s 5) (make-block x y
+        [(= s 5) (make-block (- x DELTA) (- y CELL)
                              (list
-                              (make-point (- x DELTA) (- y (* 2 DELTA)))
-                              (make-point (- x DELTA) y)
-                              (make-point (+ x DELTA) y)
-                              (make-point (+ x DELTA) (+ y (* 2 DELTA))))
+                              (make-cell x y)
+                              (make-cell x (- y CELL))
+                              (make-cell (- x CELL) (- y CELL))
+                              (make-cell (- x CELL) (- y (* 2 CELL))))
                              r s c)]
         
-        [(= s 6) (make-block x y
+        [(= s 6) (make-block (+ x DELTA) (- y CELL)
                              (list
-                              (make-point (+ x DELTA) (- y (* 2 DELTA)))
-                              (make-point (+ x DELTA) y)
-                              (make-point (- x DELTA) y)
-                              (make-point (- x DELTA) (+ y (* 2 DELTA))))
+                              (make-cell x y)
+                              (make-cell x (- y CELL))
+                              (make-cell (+ x CELL) (- y CELL))
+                              (make-cell (+ x CELL) (- y (* 2 CELL))))
                              r s c)]))
 
 
 
 (@htdd Game)
 (define-struct game (block stack record))
-;; Game is (make-game Block ListOfPoint Integer)
+;; Game is (make-game Block ListOfCell Integer)
 ;; interp. the current state of a game including:
 ;; EX:(Initial state)
-(define G0 (make-game (generate-block (/ WIDTH 2)
-                                      0
+(define G0 (make-game (generate-block (+ (+ CELL LEFT) (* CELL (random (- FULLLINE-NUM 4))))
+                                      TOP
                                       0
                                       (random (length SHAPE-LIST))
                                       (random (length COLOR-LIST)))
-                      empty 0))
+                      empty
+                      0))
 
 (define (fn-for-game g)
   (... (fn-for-block (game-block g))
@@ -180,36 +182,36 @@
 (define (next g)
   (local [(define blk (game-block g))
           (define stk (game-stack g))
-          (define rd (game-record g))
-          (define pts (block-points blk))
-          (define shape (list-ref SHAPE-LIST (block-s blk)))
           
-          (define (next-block b)
-            (if (or (touch-bottom? b) (reach-stack? b stk))
-                (generate-block (/ WIDTH 2)
-                                0
-                                0
-                                (random (length SHAPE-LIST))
-                                (random (length COLOR-LIST)))
-                (make-block (block-x b)
-                            (+ SPEED (block-y b))
-                            (map (λ(p) (make-point (point-x p)
-                                                   (+ SPEED (point-y p))))
-                                 (block-points b))
-                            (block-r b) (block-s b) (block-c b))))
+          (define (next-block b loc)
+            (local [(define new-block
+                      (make-block (block-x b) (+ SPEED (block-y b))
+                                  (map (λ(c) (make-cell (cell-x c) (+ SPEED (cell-y c))))
+                                       (block-cells b))
+                                  (block-r b) (block-s b) (block-c b)))]
+              
+              (if (or (touch-bottom? b) (reach-stack? b loc))
+                  (generate-block (+ (+ CELL LEFT) (* CELL (random (- FULLLINE-NUM 4))))
+                                  TOP
+                                  0
+                                  (random (length SHAPE-LIST))
+                                  (random (length COLOR-LIST)))
+                  (cond [(touch-bottom? new-block) (stay-bottom b)]
+                        [(reach-stack? new-block loc) (stay-stack b loc)]
+                        [else new-block]))))
+          
+          (define (next-stack b loc)
+            (if (or (touch-bottom? b) (reach-stack? b loc))
+                (check-full-line (append loc (block-cells b)))
+                loc))
 
-          (define (next-stack lop)
-            (if (or (touch-bottom? blk) (reach-stack? blk lop))
-                (check-full-line (append lop pts))
-                lop))
-
-          (define (next-record lop rsf) rsf)]
+          (define (next-record loc rsf) rsf)]
     
     (if (or (victory? g) (lost? g))
         g
-        (make-game (next-block blk)
-                   (next-stack stk)
-                   (next-record stk rd)))))
+        (make-game (next-block (game-block g) (game-stack g))
+                   (next-stack (game-block g) (game-stack g))
+                   (next-record (game-stack g) (game-record g))))))
 
 
 
@@ -261,61 +263,120 @@
 
 ;;!!!
 ;;reach-stack?
-(@signature Block ListOfPoint -> Boolean)
-(define (reach-stack? b lop)
-  (ormap (λ(p) (attached? b p)) lop))
+(@signature Block ListOfCell -> Boolean)
+(define (reach-stack? b loc)
+;  (ormap (λ(p) (ormap (λ(c) (attached? p c)) loc)) (block-cells b)))
+  (ormap (λ(p) (ormap (λ(c) (and (= (cell-x c) (cell-x p))
+                                 (<= 0 (- (cell-y c) (cell-y p)) CELL)))
+                      loc))
+         (block-cells b)))
+  
+;(define (reach-stack? b loc)
+;  (ormap (λ(c) (member? c loc)) (block-cells (forward-block b))))
+
+;;attached?
+(@signature Cell Cell -> Boolean)
+(define (attached? cb cs)
+  ;; usually c1 is above(from block) and c2 is below(from stack)
+  (or (and (= (cell-x cb) (cell-x cs)) (<= 0 (- (cell-y cs) (cell-y cb)) CELL))
+      (and (= (cell-y cb) (cell-y cs)) (<= (abs (- (cell-x cs) (cell-x cb))) CELL))))
+  
+                  
+;;forward-block
+(@signature Block -> Block)
+(define (forward-block b)
+  (make-block (block-x b)
+              (+ CELL (block-y b))
+              (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) (block-cells b))
+              (block-r b) (block-s b) (block-c b)))
+
+;;stay-bottom
+(@signature Block -> Block)
+(define (stay-bottom b)
+  (local [(define shape (list-ref SHAPE-LIST (block-s b)))
+          (define c-y (block-y b))
+          (define half-width (/ (image-width shape) 2))
+          (define half-height (/ (image-height shape) 2))
+          (define (fn-for-block s)
+            (make-block (block-x b) (+ s (block-y b))
+                        (map (λ(c) (make-cell (cell-x c) (+ s (cell-y c)))) (block-cells b))
+                        (block-r b) (block-s b) (block-c b)))]
+    (cond [(horizontal? b)
+           (local [(define step1 (- HEIGHT c-y half-height))]
+             (fn-for-block step1))]
+          [else
+           (local [(define step2 (- HEIGHT c-y half-width))]
+             (fn-for-block step2))])))
+
+
+
+;;stay-stack
+;;nested loops(hard to apply)
+(@signature Block ListOfCell -> Block)
+(define (stay-stack b0 loc0)
+  (local [(define (fn-for-loc c loc wl)
+            (cond [(empty? loc) wl]
+                  [else
+                   (local [(define distance (- (cell-y (first loc)) (cell-y c) CELL))]
+                     (if (and (= (cell-x (first loc)) (cell-x c)) (>= distance 0))
+                         (fn-for-loc c (rest loc) (cons distance wl))
+                         (fn-for-loc c (rest loc) wl)))]))
+
+          (define (fn-for-block lop loc wl)
+            (cond [(empty? lop) wl]
+                  [else
+                   (append (fn-for-loc (first lop) loc wl)
+                           (fn-for-block (rest lop) loc wl))]))
+
+          (define step
+            (local [(define dl (fn-for-block (block-cells b0) loc0 empty))]
+              (foldr min (first dl) (rest dl))))]
+    
+    (make-block (block-x b0) (+ step (block-y b0))
+                (map (λ(c) (make-cell (cell-x c) (+ step (cell-y c)))) (block-cells b0))
+                (block-r b0) (block-s b0) (block-c b0))))
+            
+                   
 
 
 ;;!!!
-;;attached?
-(@signature Block Point -> Boolean)
-(define (attached? b pt)
-  (ormap (λ(p) (and (= (point-x p) (point-x pt))
-                    (= (+ DELTA (point-y p)) (point-y pt))))
-         (block-points b))) 
-                  
-
-
-
-
 ;;check-full-line
-(@signature ListOfPoint -> ListOfPoint)
-(define (check-full-line lop)
-  (cond [(not (has-full-line? lop)) lop]
+(@signature ListOfCell -> ListOfCell)
+(define (check-full-line loc)
+  (cond [(not (has-full-line? loc)) loc]
         [else
-         (check-full-line (trim-line lop))]))
+         (check-full-line (trim-line loc))]))
 
-
+;;!!!
 ;;has-full-line?
-(@signature ListOfPoint -> Boolean)
-(define (has-full-line? lop)
-  (local [(define (fn-for-lop lop rsf)
-            (cond [(empty? lop) rsf]
+(@signature ListOfCell -> Boolean)
+(define (has-full-line? loc)
+  (local [(define (fn-for-loc loc rsf)
+            (cond [(empty? loc) rsf]
                   [else
-                   (if (= (point-y (first lop)) BOTTOM)
-                       (fn-for-lop (rest lop) (add1 rsf))
-                       (fn-for-lop (rest lop) rsf))]))]
-    
-    (= FULLLINE-NUM (fn-for-lop lop 0))))
+                   (if (= (cell-y (first loc)) BOTTOM)
+                       (fn-for-loc (rest loc) (add1 rsf))
+                       (fn-for-loc (rest loc) rsf))]))]    
+    (= FULLLINE-NUM (fn-for-loc loc 0))))
 
 
-
+;;!!!
 ;;trim-line
-(@signature ListOfPoint -> ListOfPoint)
-(define (trim-line lop)
-  (local [(define (fn-for-lop lop pwl)
-            (cond [(empty? lop) pwl]
+(@signature ListOfCell -> ListOfCell)
+(define (trim-line loc)
+  (local [(define (fn-for-loc loc pwl)
+            (cond [(empty? loc) pwl]
                   [else
-                   (if (not (= (point-y (first lop)) BOTTOM))
-                       (fn-for-lop (rest lop) (cons (first lop) pwl))
-                       (fn-for-lop (rest lop) pwl))]))]
+                   (if (not (= (cell-y (first loc)) BOTTOM))
+                       (fn-for-loc (rest loc) (cons (first loc) pwl))
+                       (fn-for-loc (rest loc) pwl))]))]
+    (forward-stack (fn-for-loc loc empty))))
 
-    (forward-stack (fn-for-lop lop empty))))
 
 ;;forward-stack
-(@signature ListOfPoint -> ListOfPoint)
-(define (forward-stack lop)
-  (map (λ(p) (+ STEP (point-y p))) lop))
+(@signature ListOfCell -> ListOfCell)
+(define (forward-stack loc)
+  (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) loc))
 
 
 
@@ -339,7 +400,7 @@
   (local [(define blk (game-block g))
           (define stk (game-stack g))
           (define rd (game-record g))
-          (define pts (block-points blk))
+          (define pts (block-cells blk))
           (define angle (block-r blk))
           (define shape (list-ref SHAPE-LIST (block-s blk)))
 
@@ -354,13 +415,13 @@
                            img)))
 
 
-          (define (render-stack lop)
-            (cond [(empty? lop) MTS]
+          (define (render-stack loc)
+            (cond [(empty? loc) MTS]
                   [else
                    (place-image UNIT
-                                (point-x (first lop))
-                                (point-y (first lop))
-                                (render-stack (rest lop)))]))
+                                (cell-x (first loc))
+                                (cell-y (first loc))
+                                (render-stack (rest loc)))]))
 
           (define score-bd
             (text (string-append "score: " (number->string rd))
@@ -396,25 +457,29 @@
   (local [(define (flip-block b)
             (make-block (block-x b)
                         (block-y b)
-                        (rotate-points b)
+                        (rotate-cells b)
                         (+ 90 (block-r b))
                         (block-s b)
                         (block-c b)))
 
-          (define (rotate-points b)
+          (define (rotate-cells b)
             (local [(define x0 (block-x b))
                     (define y0 (block-y b))]
-              (map (λ(p) (make-point (- y0 (point-y p))
-                                     (- (point-x p) x0)))
-                   (block-points b))))
+              (map (λ(p) (make-cell (- y0 (cell-y p))
+                                    (- (cell-x p) x0)))
+                   (block-cells b))))
+
+
+
+          
 
           (define (move-left b)
             (if (touch-left? b)
                 b
                 (make-block (- (block-x b) H-MOVE) (block-y b)
-                            (map (λ(p) (make-point (- (point-x p) H-MOVE)
-                                                   (point-y p)))
-                                 (block-points b))
+                            (map (λ(p) (make-cell (- (cell-x p) H-MOVE)
+                                                  (cell-y p)))
+                                 (block-cells b))
                             (block-r b)
                             (block-s b)
                             (block-c b))))
@@ -423,24 +488,25 @@
             (if (touch-right? b)
                 b
                 (make-block (+ (block-x b) H-MOVE) (block-y b)
-                            (map (λ(p) (make-point (+ (point-x p) H-MOVE)
-                                                   (point-y p)))
-                                 (block-points b))
+                            (map (λ(p) (make-cell (+ (cell-x p) H-MOVE)
+                                                  (cell-y p)))
+                                 (block-cells b))
                             (block-r b)
                             (block-s b)
                             (block-c b))))
 
           (define (accelerate b)
-            (if (or (reach-stack? b (game-stack g))
-                    (touch-bottom? b))
-                b 
-                (make-block (block-x b) (+ (block-y b) V-MOVE)
-                            (map (λ(p) (make-point (point-x p)
-                                                   (+ (point-y p) V-MOVE)))
-                                 (block-points b))
-                            (block-r b)
-                            (block-s b)
-                            (block-c b))))]
+            (local [(define new-block (make-block (block-x b) (+ (block-y b) V-MOVE)
+                                                  (map (λ(p) (make-cell (cell-x p)
+                                                                        (+ (cell-y p) V-MOVE)))
+                                                       (block-cells b))
+                                                  (block-r b) (block-s b) (block-c b)))]
+              (if (or (reach-stack? b (game-stack g))
+                      (touch-bottom? b))
+                  b
+                  (cond [(touch-bottom? new-block) (stay-bottom b)]
+                        [(reach-stack? new-block (game-stack g)) (stay-stack b (game-stack g))]
+                        [else new-block]))))]
 
     
     (cond [(key=? ke " ")
@@ -455,63 +521,3 @@
           [else g])))
 
 
-
-;;;flip-block
-;(@signature Block -> Block)
-;(define (flip-block b)
-;  (make-block (block-x b)
-;              (block-y b)
-;              (rotate-points b)
-;              (+ 90 (block-r b))
-;              (block-s b)
-;              (block-c b)))
-;
-;;;rotate-points
-;(@signature Block -> ListOfPoint)
-;(define (rotate-points b)
-;  (local [(define x0 (block-x b))
-;          (define y0 (block-y b))]
-;    (map (λ(p) (make-point (- y0 (point-y p))
-;                           (- (point-x p) x0)))
-;         (block-points b))))
-;          
-;
-;
-;;;move-left
-;(@signature Block -> Block)
-;(define (move-left b)
-;  (if (touch-left? b)
-;      b
-;      (make-block (- (block-x b) H-MOVE) (block-y b)
-;                  (map (λ(p) (make-point (- (point-x p) H-MOVE) (point-y p)))
-;                       (block-points b))
-;                  (block-r b)
-;                  (block-s b)
-;                  (block-c b))))
-;
-;
-;;;move-right
-;(@signature Block -> Block)
-;(define (move-right b)
-;  (if (touch-right? b)
-;      b
-;      (make-block (+ (block-x b) H-MOVE) (block-y b)
-;                  (map (λ(p) (make-point (+ (point-x p) H-MOVE) (point-y p)))
-;                       (block-points b))
-;                  (block-r b)
-;                  (block-s b)
-;                  (block-c b))))
-;
-;;;accelerate
-;(@signature Game -> Block)
-;(define (accelerate g)
-;  (local [(define b (game-block g))
-;          (define stk (game-stack g))]
-;    (if (or (reach-stack? b stk) (touch-bottom? b))
-;        b 
-;        (make-block (block-x b) (+ (block-y b) V-MOVE)
-;                    (map (λ(p) (make-point (point-x p) (+ (point-y p) V-MOVE)))
-;                         (block-points b))
-;                    (block-r b)
-;                    (block-s b)
-;                    (block-c b)))))
