@@ -269,6 +269,13 @@
           [else
            (>= (block-x b) (- WIDTH (/ (image-height shape) 2)))])))
 
+;;touch-cell?
+(@signature Block ListOfCell -> Boolean)
+(define (touch-cell? b loc)
+  (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
+                                 (<= (abs (- (cell-x c) (cell-x p))) CELL)))
+                      loc))
+         (block-cells b)))
 
 
 ;;reach-stack?
@@ -368,13 +375,11 @@
           
           (define (render-block b img)
             (local [(define r (block-r b))
-                    (define s (list-ref SHAPE-LIST (block-s b)))]
-              
+                    (define s (list-ref SHAPE-LIST (block-s b)))]              
               (place-image (rotate r s)
                            (block-x b)
                            (block-y b)
                            img)))
-
 
           (define (render-stack loc)
             (cond [(empty? loc) MTS]
@@ -414,26 +419,16 @@
 (@signature Game KeyEvent -> Game)
 ;; rotate block or move left & right when pressing corresponding key
 (define (move g ke)
-  (local [(define (accelerate b)
-            (if (or (reach-stack? b (game-stack g))
-                    (touch-bottom? b))
-                b
-                (make-block (block-x b) (+ (block-y b) V-MOVE)
-                            (map (λ(p) (make-cell (cell-x p) (+ (cell-y p) V-MOVE)))
-                                 (block-cells b))
-                            (block-rcx b) (+ V-MOVE (block-rcy b))
-                            (block-r b) (block-s b))))]
-    
-    (cond [(key=? ke " ")
+  (cond [(key=? ke " ")
            (make-game (flip-block (game-block g)) (game-stack g) (game-record g))]
           [(key=? ke "left")
-           (make-game (move-left (game-block g)) (game-stack g) (game-record g))]
+           (make-game (move-left (game-block g) (game-stack g)) (game-stack g) (game-record g))]
           [(key=? ke "right")
-           (make-game (move-right (game-block g)) (game-stack g) (game-record g))]
+           (make-game (move-right (game-block g) (game-stack g)) (game-stack g) (game-record g))]
           [(key=? ke "down")
-           (make-game (accelerate (game-block g)) (game-stack g) (game-record g))]
+           (make-game (accelerate (game-block g) (game-stack g)) (game-stack g) (game-record g))]
           [(key=? ke "r") G0]
-          [else g])))
+          [else g]))
 
 
 
@@ -455,9 +450,9 @@
 
 
 ;;move-left
-(@signature Block -> Block)
-(define (move-left b)
-  (if (touch-left? b)
+(@signature Block ListOfCell -> Block)
+(define (move-left b loc)
+  (if (or (touch-left? b) (touch-cell? b loc))
       b
       (make-block (- (block-x b) H-MOVE) (block-y b)
                   (map (λ(p) (make-cell (- (cell-x p) H-MOVE) (cell-y p)))
@@ -466,12 +461,24 @@
                   (block-r b) (block-s b))))
 
 ;;move-right
-(@signature Block -> Block)
-(define (move-right b)
-  (if (touch-right? b)
+(@signature Block ListOfCell -> Block)
+(define (move-right b loc)
+  (if (or (touch-right? b) (touch-cell? b loc))
       b
       (make-block (+ (block-x b) H-MOVE) (block-y b)
                   (map (λ(p) (make-cell (+ (cell-x p) H-MOVE) (cell-y p)))
                        (block-cells b))
                   (+ (block-rcx b) H-MOVE) (block-rcy b)
                   (block-r b) (block-s b))))
+
+;;accelerate
+(@signature Block ListOfCell -> Block)
+(define (accelerate b loc)
+            (if (or (reach-stack? b loc)
+                    (touch-bottom? b))
+                b
+                (make-block (block-x b) (+ (block-y b) V-MOVE)
+                            (map (λ(p) (make-cell (cell-x p) (+ (cell-y p) V-MOVE)))
+                                 (block-cells b))
+                            (block-rcx b) (+ V-MOVE (block-rcy b))
+                            (block-r b) (block-s b))))
