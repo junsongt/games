@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-advanced-reader.ss" "lang")((modname Tetris) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #t)))
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname |Tetris(Lite BW)|) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #t)))
 (require 2htdp/image)
 (require 2htdp/universe)
 (require spd/tags)
@@ -10,7 +10,7 @@
 (define WIDTH 200)  ;width of the screen
 (define HEIGHT 400) ;height of the screen
 
-(define (unit color) (square 20 "solid" color))
+
 (define UNIT (square 20 "solid" "white"))
 (define FULLLINE-NUM (/ WIDTH (image-width UNIT)))
 (define CELL (image-width UNIT))
@@ -36,27 +36,25 @@
 (define TOP (+ 0 DELTA))          ;upper boundary
 (define BOTTOM (- HEIGHT DELTA))  ;lower boundary
 
-(define SPEED 2)   ;dropping speed of the shape per tick
+(define SPEED CELL)   ;dropping speed of the shape per tick
 (define H-MOVE CELL) ;moving speed of the shape along x-axis
 (define V-MOVE CELL) ;moving speed of the shape along y-axis
 (define SCORE-FONT 10)       ;the font size of score
 (define SCORE-COLOR "white") ;the color of score
 
-(define COLOR-LIST (list "red" "yellow" "blue" "purple" "orange" "pink"))
 (define SHAPE-LIST (list SHAPE1 SHAPE2 SHAPE3 SHAPE4 SHAPE5 SHAPE6 SHAPE7))
 
 
 ;;=========================================================================
 ;; Data definition
 (@htdd Cell)
-(define-struct cell (x y c))
+(define-struct cell (x y))
 ;; Cell is (make-cell Number Number)
 ;; Number--x coordinate
 ;; Number--y coordiante
 (define (fn-for-cell c)
   (... (cell-x c)
-       (cell-y c)
-       (cell-c c)))
+       (cell-y c)))
 
 (@htdd ListOfCell)
 ;; ListOfCell is one of:
@@ -80,7 +78,6 @@
 ;; Number--y coord for block rotation center
 ;; Integer--angle(0 90 180 270 360)
 ;; Integer--shape number
-;; Integer--colour number
 (define (fn-for-block b)
   (... (block-x b)
        (block-y b)
@@ -93,68 +90,68 @@
 
 
 (@htdf generate-block)
-(@signature Number Number Number Number -> Block)
-(define (generate-block x y r s c)
+(@signature Number Number Number Integer -> Block)
+(define (generate-block x y r s)
   (cond [(= s 0) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y c)
-                              (make-cell (+ x CELL) y c)
-                              (make-cell (+ x (* 2 CELL)) y c)
-                              (make-cell (+ x CELL) (- y CELL) c))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x CELL) (- y CELL)))
                              (+ x CELL) y
                              r s)]
         
         [(= s 1) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y c)
-                              (make-cell (+ x CELL) y c)
-                              (make-cell (+ x (* 2 CELL)) y c)
-                              (make-cell x (- y CELL) c))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell x (- y CELL)))
                              (+ x CELL) (- y CELL)
                              r s)]
         
         [(= s 2) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y c)
-                              (make-cell (+ x CELL) y c)
-                              (make-cell (+ x (* 2 CELL)) y c)
-                              (make-cell (+ x (* 2 CELL)) (- y CELL) c))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x (* 2 CELL)) (- y CELL)))
                              (+ x CELL) (- y CELL)
                              r s)]
         
         [(= s 3) (make-block (+ x CELL DELTA) y
                              (list
-                              (make-cell x y c)
-                              (make-cell (+ x CELL) y c)
-                              (make-cell (+ x (* 2 CELL)) y c)
-                              (make-cell (+ x (* 3 CELL)) y c))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x (* 2 CELL)) y)
+                              (make-cell (+ x (* 3 CELL)) y))
                              (+ x CELL DELTA) (+ y CELL DELTA)
                              r s)]
         
         [(= s 4) (make-block (+ x DELTA) (- y DELTA)
                              (list
-                              (make-cell x y c)
-                              (make-cell (+ x CELL) y c)
-                              (make-cell (+ x CELL) (- y CELL) c)
-                              (make-cell x (- y CELL) c))
+                              (make-cell x y)
+                              (make-cell (+ x CELL) y)
+                              (make-cell (+ x CELL) (- y CELL))
+                              (make-cell x (- y CELL)))
                              (+ x DELTA) (- y DELTA)
                              r s)]
         
         [(= s 5) (make-block (- x DELTA) (- y CELL)
                              (list
-                              (make-cell x y c)
-                              (make-cell x (- y CELL) c)
-                              (make-cell (- x CELL) (- y CELL) c)
-                              (make-cell (- x CELL) (- y (* 2 CELL)) c))
+                              (make-cell x y)
+                              (make-cell x (- y CELL))
+                              (make-cell (- x CELL) (- y CELL))
+                              (make-cell (- x CELL) (- y (* 2 CELL))))
                              (- x CELL) (- y CELL)
                              r s)]
         
         [(= s 6) (make-block (+ x DELTA) (- y CELL)
                              (list
-                              (make-cell x y c)
-                              (make-cell x (- y CELL) c)
-                              (make-cell (+ x CELL) (- y CELL) c)
-                              (make-cell (+ x CELL) (- y (* 2 CELL)) c))
+                              (make-cell x y)
+                              (make-cell x (- y CELL))
+                              (make-cell (+ x CELL) (- y CELL))
+                              (make-cell (+ x CELL) (- y (* 2 CELL))))
                              x (- y CELL)
                              r s)]))
 
@@ -168,8 +165,7 @@
 (define G0 (make-game (generate-block (+ (+ CELL LEFT) (* CELL (random (- FULLLINE-NUM 4))))
                                       TOP
                                       0
-                                      (random (length SHAPE-LIST))
-                                      (random (length COLOR-LIST)))
+                                      (random (length SHAPE-LIST)))
                       empty
                       0))
 
@@ -181,7 +177,7 @@
 
 
 
-;;===============================================================
+;;=======================================================================
 ;; Function definition
 ;; Main function
 (@htdf main)
@@ -189,12 +185,12 @@
 ;; start with (main G0)
 (define (main g)
   (big-bang g                   
-    (on-tick next)      
+    (on-tick next 1)      
     (to-draw render)    
     (on-key move)))
 
 
-;;===================================
+;;==================================
 ;; Next function
 (@htdf next)
 (@signature Game -> Game)
@@ -204,24 +200,16 @@
           (define stk (game-stack g))
           
           (define (next-block b loc)
-            (local [(define new-block
-                      (make-block (block-x b) (+ SPEED (block-y b))
-                                  (map (λ(c) (make-cell (cell-x c)
-                                                        (+ SPEED (cell-y c))
-                                                        (cell-c c)))
-                                       (block-cells b))
-                                  (block-rcx b) (+ SPEED (block-rcy b))
-                                  (block-r b) (block-s b)))]
-              
-              (if (or (touch-bottom? b) (reach-stack? b loc))
-                  (generate-block (+ (+ CELL LEFT) (* CELL (random (- FULLLINE-NUM 4))))
-                                  TOP
-                                  0
-                                  (random (length SHAPE-LIST))
-                                  (random (length COLOR-LIST)))
-                  (cond [(touch-bottom? new-block) (stay-bottom b)]
-                        [(reach-stack? new-block loc) (stay-stack b loc)]
-                        [else new-block]))))
+            (if (or (touch-bottom? b) (reach-stack? b loc))
+                (generate-block (+ (+ CELL LEFT) (* CELL (random (- FULLLINE-NUM 4))))
+                                TOP
+                                0
+                                (random (length SHAPE-LIST)))
+                (make-block (block-x b) (+ SPEED (block-y b))
+                            (map (λ(c) (make-cell (cell-x c) (+ SPEED (cell-y c))))
+                                 (block-cells b))
+                            (block-rcx b) (+ SPEED (block-rcy b))
+                            (block-r b) (block-s b))))
           
           (define (next-stack b loc)
             (if (or (touch-bottom? b) (reach-stack? b loc))
@@ -284,79 +272,38 @@
 
 
 ;;reach-stack?
-(@signature Block ListOfCell -> Boolean)
+(@signature Block ListOfCell -> Boolean) 
 (define (reach-stack? b loc)
-;  (ormap (λ(p) (ormap (λ(c) (attached? p c)) loc)) (block-cells b)))
-  (ormap (λ(p) (ormap (λ(c) (and (= (cell-x c) (cell-x p))
-                                 (<= 0 (- (cell-y c) (cell-y p)) CELL)))
-                      loc))
-         (block-cells b)))
-
-
-;;attached?
-(@signature Cell Cell -> Boolean)
-(define (attached? cb cs)
-  ;; usually c1 is above(from block) and c2 is below(from stack)
-  (or (and (= (cell-x cb) (cell-x cs)) (<= 0 (- (cell-y cs) (cell-y cb)) CELL))
-      (and (= (cell-y cb) (cell-y cs)) (<= (abs (- (cell-x cs) (cell-x cb))) CELL))))
+  (ormap (λ(c) (member? c loc)) (block-cells (forward-block b))))
   
-
-;;stay-bottom
+                  
+;;forward-block
 (@signature Block -> Block)
-(define (stay-bottom b)
-  (local [(define shape (list-ref SHAPE-LIST (block-s b)))
-          (define c-y (block-y b))
-          (define half-width (/ (image-width shape) 2))
-          (define half-height (/ (image-height shape) 2))
-          (define (fn-for-block s)
-            (make-block (block-x b) (+ s (block-y b))
-                        (map (λ(c) (make-cell (cell-x c) (+ s (cell-y c)) (cell-c c)))
-                             (block-cells b))
-                        (block-rcx b) (+ s (block-rcy b))
-                        (block-r b) (block-s b)))]
-    (cond [(horizontal? b)
-           (local [(define step1 (- HEIGHT c-y half-height))]
-             (fn-for-block step1))]
-          [else
-           (local [(define step2 (- HEIGHT c-y half-width))]
-             (fn-for-block step2))])))
+(define (forward-block b)
+  (make-block (block-x b) (+ CELL (block-y b))
+              (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) (block-cells b))
+              (block-rcx b) (+ CELL (block-rcy b))
+              (block-r b) (block-s b)))
 
-
-
-;;stay-stack
-;;nested loops(hard to apply)
-(@signature Block ListOfCell -> Block)
-(define (stay-stack b0 loc0)
-  (local [(define (fn-for-loc c loc wl)
-            (cond [(empty? loc) wl]
-                  [else
-                   (local [(define distance (- (cell-y (first loc)) (cell-y c) CELL))]
-                     (if (and (= (cell-x (first loc)) (cell-x c)) (>= distance 0))
-                         (fn-for-loc c (rest loc) (cons distance wl))
-                         (fn-for-loc c (rest loc) wl)))]))
-
-          (define (fn-for-block lop loc wl)
-            (cond [(empty? lop) wl]
-                  [else
-                   (append (fn-for-loc (first lop) loc wl)
-                           (fn-for-block (rest lop) loc wl))]))
-
-          (define step
-            (local [(define dl (fn-for-block (block-cells b0) loc0 empty))]
-              (foldr min (first dl) (rest dl))))]
-    
-    (make-block (block-x b0) (+ step (block-y b0))
-                (map (λ(c) (make-cell (cell-x c)
-                                      (+ step (cell-y c))
-                                      (cell-c c)))
-                     (block-cells b0))
-                (block-rcx b0) (+ step (block-rcy b0))
-                (block-r b0) (block-s b0))))
-
-
+                  
 
 ;;check-full-line
 (@signature ListOfCell -> ListOfCell)
+(check-expect
+ (check-full-line (list (make-cell 10 40) (make-cell 20 40)
+                        (make-cell 10 60) (make-cell 20 60) (make-cell 30 60) (make-cell 40 60) (make-cell 50 60)
+                        (make-cell 60 60) (make-cell 70 60) (make-cell 80 60) (make-cell 90 60) (make-cell 100 60)
+                        (make-cell 10 80) (make-cell 20 80) (make-cell 30 80) (make-cell 40 80) (make-cell 50 80)
+                        (make-cell 60 80) (make-cell 70 80) (make-cell 80 80) (make-cell 90 80) (make-cell 100 80)
+                        (make-cell 10 100) (make-cell 20 100) (make-cell 50 100) (make-cell 90 100)))
+ (list
+  (make-cell 10 80)
+  (make-cell 20 80)
+  (make-cell 10 100)
+  (make-cell 20 100)
+  (make-cell 50 100)
+  (make-cell 90 100)))
+
 (define (check-full-line loc0)
   (local [(define ylist (sort (map (λ(c) (cell-y c)) loc0) >))
 
@@ -368,7 +315,6 @@
                        (fn-for-ylist (rest yl) loc))]))]
 
     (fn-for-ylist ylist loc0)))
-
 
 
 ;;cells-above-at
@@ -393,12 +339,12 @@
 ;;drop-stack
 (@signature ListOfCell -> ListOfCell)
 (define (drop-stack loc)
-  (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)) (cell-c c))) loc))
+  (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) loc))
 
 
 
-;;===================================
-;;Winning & Losing
+;;======================================
+
 ;;!!!
 (@signature Game -> Boolean)
 (define (victory? g) false)
@@ -409,8 +355,7 @@
 
 
 
-;;===================================
-
+;;======================================
 ;; Render function
 (@htdf render)
 (@signature Game -> Image)
@@ -420,36 +365,24 @@
           (define stk (game-stack g))
           (define rd (game-record g))
 
-          (define (render-cells loc img) 
-            (cond [(empty? loc) img]
-                  [else
-                   (place-image (unit (list-ref COLOR-LIST (cell-c (first loc))))
-                                (cell-x (first loc))
-                                (cell-y (first loc))
-                                (render-cells (rest loc) img))]))
-
+          
           (define (render-block b img)
-            (render-cells (block-cells b) img))
+            (local [(define r (block-r b))
+                    (define s (list-ref SHAPE-LIST (block-s b)))]
+              
+              (place-image (rotate r s)
+                           (block-x b)
+                           (block-y b)
+                           img)))
+
 
           (define (render-stack loc)
-            (render-cells loc MTS))
-          
-;          (define (render-block b img)
-;            (local [(define r (block-r b))
-;                    (define s (list-ref SHAPE-LIST (block-s b)))]
-;              
-;              (place-image (rotate r s)
-;                           (block-x b)
-;                           (block-y b)
-;                           img)))
-;
-;          (define (render-stack loc)
-;            (cond [(empty? loc) MTS]
-;                  [else
-;                   (place-image UNIT
-;                                (cell-x (first loc))
-;                                (cell-y (first loc))
-;                                (render-stack (rest loc)))]))
+            (cond [(empty? loc) MTS]
+                  [else
+                   (place-image UNIT
+                                (cell-x (first loc))
+                                (cell-y (first loc))
+                                (render-stack (rest loc)))]))
 
           (define score-bd
             (text (string-append "score: " (number->string rd))
@@ -475,25 +408,21 @@
 
 
 
-;;===================================
+;;==================================
 ;; Move function
 (@htdf move)
 (@signature Game KeyEvent -> Game)
 ;; rotate block or move left & right when pressing corresponding key
 (define (move g ke)
   (local [(define (accelerate b)
-            (local [(define new-block
-                      (make-block (block-x b) (+ (block-y b) V-MOVE)
-                                  (map (λ(c) (make-cell (cell-x c) (+ (cell-y c) V-MOVE) (cell-c c)))
-                                       (block-cells b))
-                                  (block-rcx b) (+ V-MOVE (block-rcy b))
-                                  (block-r b) (block-s b)))]
-              (if (or (reach-stack? b (game-stack g))
-                      (touch-bottom? b))
-                  b
-                  (cond [(touch-bottom? new-block) (stay-bottom b)]
-                        [(reach-stack? new-block (game-stack g)) (stay-stack b (game-stack g))]
-                        [else new-block]))))]
+            (if (or (reach-stack? b (game-stack g))
+                    (touch-bottom? b))
+                b
+                (make-block (block-x b) (+ (block-y b) V-MOVE)
+                            (map (λ(p) (make-cell (cell-x p) (+ (cell-y p) V-MOVE)))
+                                 (block-cells b))
+                            (block-rcx b) (+ V-MOVE (block-rcy b))
+                            (block-r b) (block-s b))))]
     
     (cond [(key=? ke " ")
            (make-game (flip-block (game-block g)) (game-stack g) (game-record g))]
@@ -508,6 +437,7 @@
 
 
 
+
 ;;flip-block
 ;;Note: (+ π/2) in world system is (-π/2) in Cartesian system;
 ;;formula: (x, y) is original coord, (x', y') is coord after rotation;
@@ -518,13 +448,10 @@
   (make-block (+ (- (block-rcx b) (block-rcy b)) (block-y b))
               (- (+ (block-rcx b) (block-rcy b)) (block-x b))
               (map (λ(c) (make-cell (+ (- (block-rcx b) (block-rcy b)) (cell-y c))
-                                    (- (+ (block-rcx b) (block-rcy b)) (cell-x c))
-                                    (cell-c c)))
+                                    (- (+ (block-rcx b) (block-rcy b)) (cell-x c))))
                    (block-cells b))
               (block-rcx b) (block-rcy b)
               (+ 90 (block-r b)) (block-s b)))
-
-
 
 
 ;;move-left
@@ -533,7 +460,7 @@
   (if (touch-left? b)
       b
       (make-block (- (block-x b) H-MOVE) (block-y b)
-                  (map (λ(c) (make-cell (- (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
+                  (map (λ(p) (make-cell (- (cell-x p) H-MOVE) (cell-y p)))
                        (block-cells b))
                   (- (block-rcx b) H-MOVE) (block-rcy b)
                   (block-r b) (block-s b))))
@@ -544,7 +471,7 @@
   (if (touch-right? b)
       b
       (make-block (+ (block-x b) H-MOVE) (block-y b)
-                  (map (λ(c) (make-cell (+ (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
+                  (map (λ(p) (make-cell (+ (cell-x p) H-MOVE) (cell-y p)))
                        (block-cells b))
                   (+ (block-rcx b) H-MOVE) (block-rcy b)
                   (block-r b) (block-s b))))

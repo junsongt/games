@@ -10,7 +10,7 @@
 (define WIDTH 200)  ;width of the screen
 (define HEIGHT 400) ;height of the screen
 
-
+(define (unit color) (square 20 "solid" color))
 (define UNIT (square 20 "solid" "white"))
 (define FULLLINE-NUM (/ WIDTH (image-width UNIT)))
 (define CELL (image-width UNIT))
@@ -36,7 +36,7 @@
 (define TOP (+ 0 DELTA))          ;upper boundary
 (define BOTTOM (- HEIGHT DELTA))  ;lower boundary
 
-(define SPEED CELL)   ;dropping speed of the shape per tick
+(define SPEED CELL)  ;dropping speed of the shape per tick
 (define H-MOVE CELL) ;moving speed of the shape along x-axis
 (define V-MOVE CELL) ;moving speed of the shape along y-axis
 (define SCORE-FONT 10)       ;the font size of score
@@ -49,13 +49,15 @@
 ;;=========================================================================
 ;; Data definition
 (@htdd Cell)
-(define-struct cell (x y))
+(define-struct cell (x y c))
 ;; Cell is (make-cell Number Number)
 ;; Number--x coordinate
 ;; Number--y coordiante
+;; Integer--color index[0, length(COLOR-LIST)-1]
 (define (fn-for-cell c)
   (... (cell-x c)
-       (cell-y c)))
+       (cell-y c)
+       (cell-c c)))
 
 (@htdd ListOfCell)
 ;; ListOfCell is one of:
@@ -70,7 +72,7 @@
 
 
 (@htdd Block)
-(define-struct block (x y cells rcx rcy r s c))
+(define-struct block (x y cells rcx rcy r s))
 ; Block is (make-block Number Number ListOfCell Integer Integer Integer)
 ;; Number--central-x coordinate
 ;; Number--central-y coordiante
@@ -87,8 +89,7 @@
        (block-rcx b)
        (block-rcy b)
        (block-r b)
-       (block-s b)       
-       (block-c b)))
+       (block-s b)))
 
 
 
@@ -97,66 +98,66 @@
 (define (generate-block x y r s c)
   (cond [(= s 0) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y)
-                              (make-cell (+ x CELL) y)
-                              (make-cell (+ x (* 2 CELL)) y)
-                              (make-cell (+ x CELL) (- y CELL)))
+                              (make-cell x y c)
+                              (make-cell (+ x CELL) y c)
+                              (make-cell (+ x (* 2 CELL)) y c)
+                              (make-cell (+ x CELL) (- y CELL) c))
                              (+ x CELL) y
-                             r s c)]
+                             r s)]
         
         [(= s 1) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y)
-                              (make-cell (+ x CELL) y)
-                              (make-cell (+ x (* 2 CELL)) y)
-                              (make-cell x (- y CELL)))
+                              (make-cell x y c)
+                              (make-cell (+ x CELL) y c)
+                              (make-cell (+ x (* 2 CELL)) y c)
+                              (make-cell x (- y CELL) c))
                              (+ x CELL) (- y CELL)
-                             r s c)]
+                             r s)]
         
         [(= s 2) (make-block (+ x CELL) (- y DELTA)
                              (list
-                              (make-cell x y)
-                              (make-cell (+ x CELL) y)
-                              (make-cell (+ x (* 2 CELL)) y)
-                              (make-cell (+ x (* 2 CELL)) (- y CELL)))
+                              (make-cell x y c)
+                              (make-cell (+ x CELL) y c)
+                              (make-cell (+ x (* 2 CELL)) y c)
+                              (make-cell (+ x (* 2 CELL)) (- y CELL) c))
                              (+ x CELL) (- y CELL)
-                             r s c)]
+                             r s)]
         
         [(= s 3) (make-block (+ x CELL DELTA) y
                              (list
-                              (make-cell x y)
-                              (make-cell (+ x CELL) y)
-                              (make-cell (+ x (* 2 CELL)) y)
-                              (make-cell (+ x (* 3 CELL)) y))
+                              (make-cell x y c)
+                              (make-cell (+ x CELL) y c)
+                              (make-cell (+ x (* 2 CELL)) y c)
+                              (make-cell (+ x (* 3 CELL)) y c))
                              (+ x CELL DELTA) (+ y CELL DELTA)
-                             r s c)]
+                             r s)]
         
         [(= s 4) (make-block (+ x DELTA) (- y DELTA)
                              (list
-                              (make-cell x y)
-                              (make-cell (+ x CELL) y)
-                              (make-cell (+ x CELL) (- y CELL))
-                              (make-cell x (- y CELL)))
+                              (make-cell x y c)
+                              (make-cell (+ x CELL) y c)
+                              (make-cell (+ x CELL) (- y CELL) c)
+                              (make-cell x (- y CELL) c))
                              (+ x DELTA) (- y DELTA)
-                             r s c)]
+                             r s)]
         
         [(= s 5) (make-block (- x DELTA) (- y CELL)
                              (list
-                              (make-cell x y)
-                              (make-cell x (- y CELL))
-                              (make-cell (- x CELL) (- y CELL))
-                              (make-cell (- x CELL) (- y (* 2 CELL))))
+                              (make-cell x y c)
+                              (make-cell x (- y CELL) c)
+                              (make-cell (- x CELL) (- y CELL) c)
+                              (make-cell (- x CELL) (- y (* 2 CELL)) c))
                              (- x CELL) (- y CELL)
-                             r s c)]
+                             r s)]
         
         [(= s 6) (make-block (+ x DELTA) (- y CELL)
                              (list
-                              (make-cell x y)
-                              (make-cell x (- y CELL))
-                              (make-cell (+ x CELL) (- y CELL))
-                              (make-cell (+ x CELL) (- y (* 2 CELL))))
+                              (make-cell x y c)
+                              (make-cell x (- y CELL) c)
+                              (make-cell (+ x CELL) (- y CELL) c)
+                              (make-cell (+ x CELL) (- y (* 2 CELL)) c))
                              x (- y CELL)
-                             r s c)]))
+                             r s)]))
 
 
 
@@ -211,10 +212,12 @@
                                 (random (length SHAPE-LIST))
                                 (random (length COLOR-LIST)))
                 (make-block (block-x b) (+ SPEED (block-y b))
-                            (map (λ(c) (make-cell (cell-x c) (+ SPEED (cell-y c))))
+                            (map (λ(c) (make-cell (cell-x c)
+                                                  (+ SPEED (cell-y c))
+                                                  (cell-c c)))
                                  (block-cells b))
                             (block-rcx b) (+ SPEED (block-rcy b))
-                            (block-r b) (block-s b) (block-c b))))
+                            (block-r b) (block-s b))))
           
           (define (next-stack b loc)
             (if (or (touch-bottom? b) (reach-stack? b loc))
@@ -277,38 +280,34 @@
 
 
 ;;reach-stack?
-(@signature Block ListOfCell -> Boolean) 
+(@signature Block ListOfCell -> Boolean)
 (define (reach-stack? b loc)
-  (ormap (λ(c) (member? c loc)) (block-cells (forward-block b))))
+  (ormap (λ(c) (contains? c loc)) (block-cells (forward-block b))))
+
+;(define (reach-stack? b loc)
+;  (ormap (λ(c) (member? c loc)) (block-cells (forward-block b))))
+
+;;contains?(@Override hashcode & equals => @Override member?)
+(@signature Cell ListOfCell -> Boolean)
+(define (contains? c loc)
+  (ormap (λ(p) (and (= (cell-x c) (cell-x p))
+                    (= (cell-y c) (cell-y p))))
+         loc))
   
                   
 ;;forward-block
 (@signature Block -> Block)
 (define (forward-block b)
   (make-block (block-x b) (+ CELL (block-y b))
-              (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) (block-cells b))
+              (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)) (cell-c c)))
+                   (block-cells b))
               (block-rcx b) (+ CELL (block-rcy b))
-              (block-r b) (block-s b) (block-c b)))
+              (block-r b) (block-s b)))
 
                   
 
 ;;check-full-line
 (@signature ListOfCell -> ListOfCell)
-(check-expect
- (check-full-line (list (make-cell 10 40) (make-cell 20 40)
-                        (make-cell 10 60) (make-cell 20 60) (make-cell 30 60) (make-cell 40 60) (make-cell 50 60)
-                        (make-cell 60 60) (make-cell 70 60) (make-cell 80 60) (make-cell 90 60) (make-cell 100 60)
-                        (make-cell 10 80) (make-cell 20 80) (make-cell 30 80) (make-cell 40 80) (make-cell 50 80)
-                        (make-cell 60 80) (make-cell 70 80) (make-cell 80 80) (make-cell 90 80) (make-cell 100 80)
-                        (make-cell 10 100) (make-cell 20 100) (make-cell 50 100) (make-cell 90 100)))
- (list
-  (make-cell 10 80)
-  (make-cell 20 80)
-  (make-cell 10 100)
-  (make-cell 20 100)
-  (make-cell 50 100)
-  (make-cell 90 100)))
-
 (define (check-full-line loc0)
   (local [(define ylist (sort (map (λ(c) (cell-y c)) loc0) >))
 
@@ -344,12 +343,12 @@
 ;;drop-stack
 (@signature ListOfCell -> ListOfCell)
 (define (drop-stack loc)
-  (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)))) loc))
+  (map (λ(c) (make-cell (cell-x c) (+ CELL (cell-y c)) (cell-c c))) loc))
 
 
 
 ;;======================================
-
+;;Winning & Losing
 ;;!!!
 (@signature Game -> Boolean)
 (define (victory? g) false)
@@ -369,28 +368,36 @@
   (local [(define blk (game-block g))
           (define stk (game-stack g))
           (define rd (game-record g))
-          (define pts (block-cells blk))
-          (define angle (block-r blk))
-          (define shape (list-ref SHAPE-LIST (block-s blk)))
-
           
-          (define (render-block b img)
-            (local [(define r (block-r b))
-                    (define s (list-ref SHAPE-LIST (block-s b)))]
-              
-              (place-image (rotate r s)
-                           (block-x b)
-                           (block-y b)
-                           img)))
-
-
-          (define (render-stack loc)
-            (cond [(empty? loc) MTS]
+          (define (render-cells loc img) 
+            (cond [(empty? loc) img]
                   [else
-                   (place-image UNIT
+                   (place-image (unit (list-ref COLOR-LIST (cell-c (first loc))))
                                 (cell-x (first loc))
                                 (cell-y (first loc))
-                                (render-stack (rest loc)))]))
+                                (render-cells (rest loc) img))]))
+
+          (define (render-block b img)
+            (render-cells (block-cells b) img))
+
+          (define (render-stack loc)
+            (render-cells loc MTS))
+          
+;          (define (render-block b img)
+;            (local [(define r (block-r b))
+;                    (define s (list-ref SHAPE-LIST (block-s b)))]
+;              
+;              (place-image (rotate r s)
+;                           (block-x b)
+;                           (block-y b)
+;                           img)))
+;          (define (render-stack loc)
+;            (cond [(empty? loc) MTS]
+;                  [else
+;                   (place-image (unit (cell-c (first loc)))
+;                                (cell-x (first loc))
+;                                (cell-y (first loc))
+;                                (render-stack (rest loc)))]))
 
           (define score-bd
             (text (string-append "score: " (number->string rd))
@@ -427,10 +434,10 @@
                     (touch-bottom? b))
                 b
                 (make-block (block-x b) (+ (block-y b) V-MOVE)
-                            (map (λ(p) (make-cell (cell-x p) (+ (cell-y p) V-MOVE)))
+                            (map (λ(c) (make-cell (cell-x c) (+ (cell-y c) V-MOVE) (cell-c c)))
                                  (block-cells b))
                             (block-rcx b) (+ V-MOVE (block-rcy b))
-                            (block-r b) (block-s b) (block-c b))))]
+                            (block-r b) (block-s b))))]
     
     (cond [(key=? ke " ")
            (make-game (flip-block (game-block g)) (game-stack g) (game-record g))]
@@ -456,10 +463,11 @@
   (make-block (+ (- (block-rcx b) (block-rcy b)) (block-y b))
               (- (+ (block-rcx b) (block-rcy b)) (block-x b))
               (map (λ(c) (make-cell (+ (- (block-rcx b) (block-rcy b)) (cell-y c))
-                                    (- (+ (block-rcx b) (block-rcy b)) (cell-x c))))
+                                    (- (+ (block-rcx b) (block-rcy b)) (cell-x c))
+                                    (cell-c c)))
                    (block-cells b))
               (block-rcx b) (block-rcy b)
-              (+ 90 (block-r b)) (block-s b) (block-c b)))
+              (+ 90 (block-r b)) (block-s b)))
 
 
 ;;move-left
@@ -468,10 +476,10 @@
   (if (touch-left? b)
       b
       (make-block (- (block-x b) H-MOVE) (block-y b)
-                  (map (λ(p) (make-cell (- (cell-x p) H-MOVE) (cell-y p)))
+                  (map (λ(c) (make-cell (- (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
                        (block-cells b))
                   (- (block-rcx b) H-MOVE) (block-rcy b)
-                  (block-r b) (block-s b) (block-c b))))
+                  (block-r b) (block-s b))))
 
 ;;move-right
 (@signature Block -> Block)
@@ -479,7 +487,7 @@
   (if (touch-right? b)
       b
       (make-block (+ (block-x b) H-MOVE) (block-y b)
-                  (map (λ(p) (make-cell (+ (cell-x p) H-MOVE) (cell-y p)))
+                  (map (λ(c) (make-cell (+ (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
                        (block-cells b))
                   (+ (block-rcx b) H-MOVE) (block-rcy b)
-                  (block-r b) (block-s b) (block-c b))))
+                  (block-r b) (block-s b))))
