@@ -39,6 +39,11 @@
 (define SPEED 2)   ;dropping speed of the shape per tick
 (define H-MOVE CELL) ;moving speed of the shape along x-axis
 (define V-MOVE CELL) ;moving speed of the shape along y-axis
+(define WINNING-SCORE 100)      ;the score to win
+(define WL-FONT 20)            ;the font size of "winning/losing"
+(define WL-COLOR "white")      ;the color of "winning/losing"
+(define MESSAGE-FONT 10)       ;the font size of message
+(define MESSAGE-COLOR "white") ;the color of message
 (define SCORE-FONT 10)       ;the font size of score
 (define SCORE-COLOR "white") ;the color of score
 
@@ -228,13 +233,16 @@
                 (check-full-line (append loc (block-cells b)))
                 loc))
 
-          (define (next-record loc rsf) rsf)]
+          (define (next-record b loc r)
+            (if (or (touch-bottom? b) (reach-stack? b loc))
+                (check-score (append loc (block-cells b)) r)
+                r))]
     
     (if (or (victory? g) (lost? g))
         g
         (make-game (next-block (game-block g) (game-stack g))
                    (next-stack (game-block g) (game-stack g))
-                   (next-record (game-stack g) (game-record g))))))
+                   (next-record (game-block g) (game-stack g) (game-record g))))))
 
 
 
@@ -287,6 +295,22 @@
   (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
                                  (<= (abs (- (cell-x c) (cell-x p))) CELL)))
                         loc))
+         (block-cells b)))
+
+;;touch-left-cell?
+(@signature Block ListOfCell -> Boolean)
+(define (touch-left-cell? b loc)
+  (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
+                                 (<= 0 (- (cell-x p) (cell-x c)) CELL)))
+                      loc))
+         (block-cells b)))
+
+;;touch-right-cell?
+(@signature Block ListOfCell -> Boolean)
+(define (touch-right-cell? b loc)
+  (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
+                                 (<= 0 (- (cell-x c) (cell-x p)) CELL)))
+                      loc))
          (block-cells b)))
 
 
@@ -404,15 +428,35 @@
 
 
 
+;;check-score
+(@signature ListOfCell Integer -> Integer)
+(define (check-score loc r)
+  (local [(define ylist (sort (map (λ(c) (cell-y c)) loc) >))
+          
+          (define (fn-for-ylist yl loc rsf)
+            (cond [(empty? yl) rsf]
+                  [else
+                   (if (has-full-line-at? loc (first yl))
+                       (fn-for-ylist yl (remove-line loc (first yl)) (+ FULLLINE-NUM rsf))
+                       (fn-for-ylist (rest yl) loc rsf))]))]
+    
+    (fn-for-ylist ylist loc r)))
+
 ;;===================================
 ;;Winning & Losing
-;;!!!
+;;victory?
 (@signature Game -> Boolean)
-(define (victory? g) false)
+(define (victory? g)
+  (>= (game-record g) WINNING-SCORE))
 
-;;!!!
+;;lost?
 (@signature Game -> Boolean)
-(define (lost? g) false)
+(define (lost? g)
+  (local [(define b (game-block g))
+          (define loc (game-stack g))]
+    (if (reach-stack? b loc)
+        (ormap (λ(c) (<= (cell-y c) DELTA)) (append loc (block-cells b)))
+        false)))
 
 
 
@@ -441,22 +485,6 @@
           (define (render-stack loc)
             (render-cells loc MTS))
           
-          ;          (define (render-block b img)
-          ;            (local [(define r (block-r b))
-          ;                    (define s (list-ref SHAPE-LIST (block-s b)))]
-          ;              
-          ;              (place-image (rotate r s)
-          ;                           (block-x b)
-          ;                           (block-y b)
-          ;                           img)))
-          ;
-          ;          (define (render-stack loc)
-          ;            (cond [(empty? loc) MTS]
-          ;                  [else
-          ;                   (place-image UNIT
-          ;                                (cell-x (first loc))
-          ;                                (cell-y (first loc))
-          ;                                (render-stack (rest loc)))]))
 
           (define score-bd
             (text (string-append "score: " (number->string rd))
@@ -469,11 +497,11 @@
                          (image-height score-bd)
                          (render-block blk (render-stack stk))))]
 
-    (cond [(victory? g) (overlay (above (text "VICTORY!" 50 "white")
-                                        (text "Press R to restart" 20 "white"))
+    (cond [(victory? g) (overlay (above (text "VICTORY!" WL-FONT WL-COLOR)
+                                        (text "Press R to restart" MESSAGE-FONT MESSAGE-COLOR))
                                  main-image)]
-          [(lost? g) (overlay (above (text "GAME OVER" 50 "white")
-                                     (text "Press R to restart" 20 "white"))
+          [(lost? g) (overlay (above (text "GAME OVER" WL-FONT WL-COLOR)
+                                     (text "Press R to restart" MESSAGE-FONT MESSAGE-COLOR))
                               main-image)]
           [else main-image])))
 
@@ -521,7 +549,7 @@
 ;;move-left
 (@signature Block ListOfCell -> Block)
 (define (move-left b loc)
-  (if (or (touch-left? b) (touch-cell? b loc))
+  (if (or (touch-left? b) (touch-left-cell? b loc))
       b
       (make-block (- (block-x b) H-MOVE) (block-y b)
                   (map (λ(c) (make-cell (- (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
@@ -532,7 +560,7 @@
 ;;move-right
 (@signature Block ListOfCell -> Block)
 (define (move-right b loc)
-  (if (or (touch-right? b) (touch-cell? b loc))
+  (if (or (touch-right? b) (touch-right-cell? b loc))
       b
       (make-block (+ (block-x b) H-MOVE) (block-y b)
                   (map (λ(c) (make-cell (+ (cell-x c) H-MOVE) (cell-y c) (cell-c c)))
