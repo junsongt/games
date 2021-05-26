@@ -221,20 +221,11 @@
                 (check-full-line (append loc (block-cells b)))
                 loc))
 
-          (define (next-record b loc rsf)
-            (local [(define loc0 (append loc (block-cells b)))
-                    (define ylist (sort (map (λ(c) (cell-y c)) loc0) >))
-
-                    (define (fn-for-ylist yl loc rsf)
-                      (cond [(empty? yl) rsf]
-                            [else
-                             (if (has-full-line-at? loc (first yl))
-                                 (fn-for-ylist yl (remove-line loc (first yl)) (+ FULLLINE-NUM rsf))
-                                 (fn-for-ylist (rest yl) loc rsf))]))]
-
-              (if (or (touch-bottom? b) (reach-stack? b loc))
-                  (fn-for-ylist ylist loc0 rsf)
-                  rsf)))]
+          
+          (define (next-record b loc r)
+            (if (or (touch-bottom? b) (reach-stack? b loc))
+                (check-score (append loc (block-cells b)) r)
+                r))]
     
     (if (or (victory? g) (lost? g))
         g
@@ -288,12 +279,12 @@
            (>= (block-x b) (- WIDTH (/ (image-height shape) 2)))])))
 
 ;;touch-cell?
-;(@signature Block ListOfCell -> Boolean)
-;(define (touch-cell? b loc)
-;  (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
-;                                 (<= (abs (- (cell-x c) (cell-x p))) CELL)))
-;                      loc))
-;         (block-cells b)))
+(@signature Block ListOfCell -> Boolean)
+(define (touch-cell? b loc)
+  (ormap (λ(p) (ormap (λ(c) (and (< (abs (- (cell-y c) (cell-y p))) CELL)
+                                 (<= (abs (- (cell-x c) (cell-x p))) CELL)))
+                      loc))
+         (block-cells b)))
 
 
 ;;touch-left-cell?
@@ -386,14 +377,29 @@
 
 
 
+
+;;check-score
+(@signature ListOfCell Integer -> Integer)
+(define (check-score loc r)
+  (local [(define ylist (sort (map (λ(c) (cell-y c)) loc) >))
+          
+          (define (fn-for-ylist yl loc rsf)
+            (cond [(empty? yl) rsf]
+                  [else
+                   (if (has-full-line-at? loc (first yl))
+                       (fn-for-ylist yl (remove-line loc (first yl)) (+ FULLLINE-NUM rsf))
+                       (fn-for-ylist (rest yl) loc rsf))]))]
+    
+    (fn-for-ylist ylist loc r)))
+
 ;;======================================
 ;; Winning & losing
-;;!!!
+;;victory?
 (@signature Game -> Boolean)
 (define (victory? g)
   (>= (game-record g) WINNING-SCORE))
 
-;;!!!
+;;lost?
 (@signature Game -> Boolean)
 (define (lost? g)
   (local [(define b (game-block g))
@@ -481,7 +487,7 @@
 ;;         v = [x-rcx, y-rcy]; v' = [x'-rcx, y'-rcy] = [y-rcy, rcx-x]
 ;;         => x' = rcx-rxy+y; y' = rcx+rcy-x
 (@signature Block -> Block)
-(define (flip-block b)
+(define (flip-block b) 
   (make-block (+ (- (block-rcx b) (block-rcy b)) (block-y b))
               (- (+ (block-rcx b) (block-rcy b)) (block-x b))
               (map (λ(c) (make-cell (+ (- (block-rcx b) (block-rcy b)) (cell-y c))
@@ -489,6 +495,7 @@
                    (block-cells b))
               (block-rcx b) (block-rcy b)
               (+ 90 (block-r b)) (block-s b)))
+
 
 
 ;;move-left
