@@ -10,6 +10,9 @@
 (define WIDTH 200)  ;width of the screen
 (define HEIGHT 400) ;height of the screen
 
+; this controls the "droping speed" of the block (what multiple per tick)
+; the higher the multiple, the faster the drop
+(define MULTIPLE 5)
 
 (define UNIT (square 20 "solid" "white"))
 (define FULLLINE-NUM (/ WIDTH (image-width UNIT)))
@@ -190,7 +193,7 @@
 ;; start with (main G0)
 (define (main g)
   (big-bang g                   
-    (on-tick next 1)      
+    (on-tick next (/ 1 MULTIPLE))      
     (to-draw render)    
     (on-key move)))
 

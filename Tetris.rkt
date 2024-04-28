@@ -10,6 +10,8 @@
 (define WIDTH 200)  ;width of the screen
 (define HEIGHT 400) ;height of the screen
 
+
+
 (define (unit color) (square 20 "solid" color))
 (define UNIT (square 20 "solid" "white"))
 (define FULLLINE-NUM (/ WIDTH (image-width UNIT)))
@@ -36,7 +38,7 @@
 (define TOP (+ 0 DELTA))          ;upper boundary
 (define BOTTOM (- HEIGHT DELTA))  ;lower boundary
 
-(define SPEED 2)   ;dropping speed of the shape per tick
+(define SPEED 10)   ;dropping speed of the shape per tick
 (define H-MOVE CELL) ;moving speed of the shape along x-axis
 (define V-MOVE CELL) ;moving speed of the shape along y-axis
 (define WINNING-SCORE 100)      ;the score to win
