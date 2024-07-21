@@ -110,9 +110,9 @@
 (define (choose-image f)
   (local [(define dot (circle R "solid" (fw-c f)))
           (define splash
-            (radial-star 15
+            (radial-star 25
                          (/ (image-width dot) 2)
-                         (* (image-width dot) 10) "solid" (fw-c f)))]
+                         (* (image-width dot) 20) "solid" (fw-c f)))]
     (if (>= (fw-d f) DISTANCE)
         splash
         dot)))
