@@ -35,7 +35,8 @@ void draw() {
     if (gameover) {
         printw("GAME OVER! Your score: %d", score);
         printw("\nPress 'Q' to quit; Press 'R' to restart");
-    } else {
+    } 
+    else {
         for (int i = 0; i < width; i++) {
             mvaddch(0, i, '#');
         }
@@ -157,7 +158,7 @@ void logic() {
         int end_x = N == 0 ? x : tail_x[N - 1];
         int end_y = N == 0 ? y : tail_y[N - 1];
         N++;  // increase the tail of the snake by 1
-        // increment the tail by the food eaten, pos depending on the velocity of the tail end
+        // increment the tail at the moment when the food eaten, pos depending on the velocity of the tail end
         switch (v) {
             case LEFT:
                 tail_x[N - 1] = end_x + 1;
