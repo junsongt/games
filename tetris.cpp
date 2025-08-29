@@ -8,27 +8,36 @@ using namespace std;
 bool gameover;
 bool quit;
 const int width = 20, height = 20;
-int x, y, ball_x, ball_y, score;
-int tail_x[100], tail_y[100];
-int N;  
+int score;
+int block[4];  // coords of a dropping block
+
 enum directions { STOP = 0,
                   LEFT,
                   RIGHT,
                   DOWN,
                   FLIP };
 directions dir;
-enum shapes {O, T, S, Z, J, L, I};
+enum shapes { O,
+              T,
+              S,
+              Z,
+              J,
+              L,
+              I };
+shapes sh;
+
+struct block {
+    shapes shape;
+    int coords[4];
+    block(shapes sh) { this->shape = sh; };
+};
 
 void init() {
     gameover = false;
     quit = false;
     dir = STOP;
-    x = width / 2;
-    y = height / 2;
-    ball_x = rand() % (width - 2) + 1;
-    ball_y = rand() % (height - 2) + 1;
+
     score = 0;
-    N = 0;
 }
 
 void draw() {
@@ -36,11 +45,9 @@ void draw() {
     if (gameover) {
         printw("GAME OVER! Your score: %d", score);
         printw("\nPress 'Q' to quit; Press 'R' to restart");
-    }
-    else {
+    } else {
         // TODO
     }
-
 
     refresh();
     return;
@@ -71,24 +78,23 @@ void input() {
 }
 
 void logic() {
-
-
     switch (dir) {
         case LEFT:
-            --x;
+
             break;
         case RIGHT:
-            ++x;
+
             break;
         case FLIP:
-            --y;
+
             break;
         case DOWN:
-            ++y;
+
             break;
         default:
             break;
     }
+
     return;
 }
 
