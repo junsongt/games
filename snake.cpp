@@ -7,7 +7,7 @@ using namespace std;
 
 bool gameover;
 bool quit;
-const int width = 20, height = 20;
+const int WIDTH = 20, HEIGHT = 20;
 int x, y, ball_x, ball_y, score;
 int tail_x[100], tail_y[100];
 int N;  // length of tail, excluding head
@@ -22,10 +22,10 @@ void init() {
     gameover = false;
     quit = false;
     dir = STOP;
-    x = width / 2;
-    y = height / 2;
-    ball_x = rand() % (width - 2) + 1;
-    ball_y = rand() % (height - 2) + 1;
+    x = WIDTH / 2;
+    y = HEIGHT / 2;
+    ball_x = rand() % (WIDTH - 2) + 1;
+    ball_y = rand() % (HEIGHT - 2) + 1;
     score = 0;
     N = 0;
 }
@@ -37,13 +37,13 @@ void draw() {
         printw("\nPress 'Q' to quit; Press 'R' to restart");
     } 
     else {
-        for (int i = 0; i < width; i++) {
-            mvaddch(0, i, '#');
+        for (int i = 0; i < WIDTH; i++) {
+            mvaddch(0, i, '=');
         }
-        for (int i = 1; i < height - 1; i++) {
-            for (int j = 0; j < width; j++) {
-                if (j == 0 || j == width - 1) {
-                    mvaddch(i, j, '#');
+        for (int i = 1; i < HEIGHT - 1; i++) {
+            for (int j = 0; j < WIDTH; j++) {
+                if (j == 0 || j == WIDTH - 1) {
+                    mvaddch(i, j, '|');
                 }
                 // draw head
                 else if (i == y && j == x)
@@ -65,8 +65,8 @@ void draw() {
                 }
             }
         }
-        for (int i = 0; i < width; i++) {
-            mvaddch(height - 1, i, '#');
+        for (int i = 0; i < WIDTH; i++) {
+            mvaddch(HEIGHT - 1, i, '=');
         }
         printw("\nscore: %d", score);
     }
@@ -135,13 +135,13 @@ void logic() {
             break;
     }
     // if snake hits the wall, gameover
-    if (x >= width - 1 || x <= 0 || y <= 0 || y >= height - 1) {
+    if (x >= WIDTH - 1 || x <= 0 || y <= 0 || y >= HEIGHT - 1) {
         gameover = true;
     }
 
     // // free of wall-death modifier
-    // x = (x+width) % width;
-    // y = (y+height) % height;
+    // x = (x+WIDTH) % WIDTH;
+    // y = (y+HEIGHT) % HEIGHT;
 
     // if the snake bites its tail, gameover
     for (int i = 0; i < N; i++) {
@@ -152,8 +152,8 @@ void logic() {
     // if snake eats the food, grow
     if (x == ball_x && y == ball_y) {
         score += 10;
-        ball_x = rand() % (width - 2) + 1;
-        ball_y = rand() % (height - 2) + 1;
+        ball_x = rand() % (WIDTH - 2) + 1;
+        ball_y = rand() % (HEIGHT - 2) + 1;
 
         int end_x = N == 0 ? x : tail_x[N - 1];
         int end_y = N == 0 ? y : tail_y[N - 1];

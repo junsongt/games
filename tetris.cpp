@@ -1,43 +1,158 @@
 #include <curses.h>
 
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
-#include <vector>
 using namespace std;
 
 bool gameover;
 bool quit;
-const int width = 20, height = 20;
+const int WIDTH = 20, HEIGHT = 20;
+
+// grid
+int grid[HEIGHT][WIDTH] = {0};
+// shapes
+const int SHAPES[7][4][4] = {
+    // I
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 1},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}},
+    // O
+    {
+        {0, 0, 0, 0},
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0}},
+    // T
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}},
+    // S
+    {
+        {0, 0, 0, 0},
+        {0, 1, 1, 0},
+        {1, 1, 0, 0},
+        {0, 0, 0, 0}},
+    // Z
+    {
+        {0, 0, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 1, 1},
+        {0, 0, 0, 0}},
+    // J
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 0}},
+    // L
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {1, 0, 0, 0},
+        {0, 0, 0, 0}}};
+
 int score;
-int block[4];  // coords of a dropping block
+int block[4][4] = {0};
+int bx, by;
 
-enum directions { STOP = 0,
-                  LEFT,
-                  RIGHT,
-                  DOWN,
-                  FLIP };
-directions dir;
-enum shapes { O,
-              T,
-              S,
-              Z,
-              J,
-              L,
-              I };
-shapes sh;
+// helpers
+void setShape(const int shape[4][4]) {
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            block[i][j] = shape[i][j];
+        }
+    }
+    return;
+}
 
-struct block {
-    shapes shape;
-    int coords[4];
-    block(shapes sh) { this->shape = sh; };
-};
+// rotate block clockwise
+void rotate() {
+    int temp[4][4] = {0};
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            temp[j][3 - i] = block[i][j];
+        }
+    }
 
-void init() {
-    gameover = false;
-    quit = false;
-    dir = STOP;
+    // check or collision
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            if (temp[i][j]) {
+                int x = bx + j;
+                int y = by + i;
+                if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT || grid[y][x]) {
+                    return;  // hits, cancel rotation
+                }
+            }
+        }
+    }
 
-    score = 0;
+    // if no collision, apply rotation
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            block[i][j] = temp[i][j];
+        }
+    }
+}
+
+bool canMove(int dx, int dy) {
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            if (block[i][j]) {
+                int x = bx + j + dx;
+                int y = by + i + dy;
+                if (x < 0 || x >= WIDTH || y >= HEIGHT || (y >= 0 && grid[y][x])) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+void placeBlock() {
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            if (block[i][j]) {
+                int x = bx + j;
+                int y = by + i;
+                if (y >= 0) {
+                    grid[y][x] = 1;
+                }
+            }
+        }
+    }
+}
+
+void clearlines() {
+    for (int i = HEIGHT - 1; i >= 0; --i) {
+        bool full = true;
+        for (int j = 0; j < WIDTH; ++j) {
+            if (grid[i][j] == 0) {
+                full = false;
+            }
+        }
+
+        if (full) {
+            // drop the stack
+            for (int k = i; k > 0; --k) {
+                for (int j = 0; j < WIDTH; ++j) {
+                    grid[k][j] = grid[k - 1][j];  // after clear current line, the line above drops one level
+                }
+            }
+            // after top level drops, empty level comes in
+            for (int j = 0; j < WIDTH; ++j) {
+                grid[0][j] = 0;
+            }
+            i++;  // recheck line
+            score += 10;
+        }
+    }
 }
 
 void draw() {
@@ -46,53 +161,80 @@ void draw() {
         printw("GAME OVER! Your score: %d", score);
         printw("\nPress 'Q' to quit; Press 'R' to restart");
     } else {
-        // TODO
+        for (int i = 0; i < HEIGHT - 1; ++i) {
+            mvaddch(i, 0, '|');  // side fence
+            for (int j = 1; j < WIDTH; ++j) {
+                char ch = '.';
+                if (grid[i][j] == 1) {
+                    ch = '#';
+                }
+                for (int bi = 0; bi < 4; ++bi) {
+                    for (int bj = 0; bj < 4; ++bj) {
+                        int x = bx + bj;
+                        int y = by + bi;
+                        if (x == j && y == i && block[bi][bj]) {
+                            ch = '#';
+                        }
+                    }
+                }
+                mvaddch(i, j, ch);
+            }
+            mvaddch(i, WIDTH-1, '|');  // side fence
+        }
+        // botton fence
+        for (int i = 0; i < WIDTH; ++i) {
+            mvaddch(HEIGHT - 1, i, '=');
+        }
+        printw("\nscore: %d", score);
     }
 
     refresh();
     return;
 }
 
-void input() {
-    switch (getch()) {
-        case KEY_UP:
-            dir = FLIP;
-            break;
-        case KEY_DOWN:
-            dir = DOWN;
-            break;
-        case KEY_LEFT:
-            dir = LEFT;
-            break;
-        case KEY_RIGHT:
-            dir = RIGHT;
-            break;
-        case 'q':
-            quit = true;
-            break;
-        case 'r':
-            init();
-            break;
+void newShape() {
+    int shape_idx = rand() % 7;
+    setShape(SHAPES[shape_idx]);
+    bx = WIDTH / 2 - 2;
+    by = 0;
+    if (!canMove(0, 0)) {
+        draw();
+        gameover = true;
     }
+}
+
+void init() {
+    gameover = false;
+    quit = false;
+    score = 0;
+    bx = WIDTH / 2 - 2;
+    by = 0;
+}
+
+void input() {
+    int key = getch();
+    if (key == ' ')
+        rotate();
+    else if (key == KEY_LEFT && canMove(-1, 0))
+        bx--;
+    else if (key == KEY_RIGHT && canMove(1, 0))
+        bx++;
+    else if (key == KEY_DOWN && canMove(0, 1))
+        by++;
+    else if (key == 'q')
+        quit = true;
+    else if (key == 'r')
+        init();
     return;
 }
 
 void logic() {
-    switch (dir) {
-        case LEFT:
-
-            break;
-        case RIGHT:
-
-            break;
-        case FLIP:
-
-            break;
-        case DOWN:
-
-            break;
-        default:
-            break;
+    if (canMove(0, 1)) {
+        by++;
+    } else {
+        placeBlock();
+        clearlines();
+        newShape();
     }
 
     return;
@@ -111,7 +253,7 @@ int main() {
         draw();
         input();
         logic();
-        napms(20);
+        napms(100);
     }
     endwin();
     return 0;
