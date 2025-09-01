@@ -1,16 +1,23 @@
 #include <curses.h>
+#include <unistd.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <thread>
 using namespace std;
 
 bool gameover;
 bool quit;
 const int WIDTH = 20, HEIGHT = 20;
+bool drop;  // true if the block can drop; false if block is onhold during sleep time
+
+const int nspeed = 20;
+int speed_counter = 0;
 
 // grid
-int grid[HEIGHT][WIDTH] = {0};
+int grid[HEIGHT][WIDTH];
 // shapes
 const int SHAPES[7][4][4] = {
     // I
@@ -57,17 +64,16 @@ const int SHAPES[7][4][4] = {
         {0, 0, 0, 0}}};
 
 int score;
-int block[4][4] = {0};
-int bx, by;
+int block[4][4];
+int bx, by;  // (bx, by) represent the coord of (0, 0) pos of a block
 
-// helpers
+////////////////// begin of helpers //////////////////////////////
 void setShape(const int shape[4][4]) {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             block[i][j] = shape[i][j];
         }
     }
-    return;
 }
 
 // rotate block clockwise
@@ -78,7 +84,6 @@ void rotate() {
             temp[j][3 - i] = block[i][j];
         }
     }
-
     // check or collision
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -91,7 +96,6 @@ void rotate() {
             }
         }
     }
-
     // if no collision, apply rotation
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -115,7 +119,7 @@ bool canMove(int dx, int dy) {
     return true;
 }
 
-void placeBlock() {
+void landBlock() {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             if (block[i][j]) {
@@ -137,7 +141,6 @@ void clearlines() {
                 full = false;
             }
         }
-
         if (full) {
             // drop the stack
             for (int k = i; k > 0; --k) {
@@ -155,53 +158,14 @@ void clearlines() {
     }
 }
 
-void draw() {
-    clear();
-    if (gameover) {
-        printw("GAME OVER! Your score: %d", score);
-        printw("\nPress 'Q' to quit; Press 'R' to restart");
-    } else {
-        for (int i = 0; i < HEIGHT - 1; ++i) {
-            mvaddch(i, 0, '|');  // side fence
-            for (int j = 1; j < WIDTH; ++j) {
-                char ch = '.';
-                if (grid[i][j] == 1) {
-                    ch = '#';
-                }
-                for (int bi = 0; bi < 4; ++bi) {
-                    for (int bj = 0; bj < 4; ++bj) {
-                        int x = bx + bj;
-                        int y = by + bi;
-                        if (x == j && y == i && block[bi][bj]) {
-                            ch = '#';
-                        }
-                    }
-                }
-                mvaddch(i, j, ch);
-            }
-            mvaddch(i, WIDTH-1, '|');  // side fence
-        }
-        // botton fence
-        for (int i = 0; i < WIDTH; ++i) {
-            mvaddch(HEIGHT - 1, i, '=');
-        }
-        printw("\nscore: %d", score);
-    }
-
-    refresh();
-    return;
-}
-
 void newShape() {
     int shape_idx = rand() % 7;
     setShape(SHAPES[shape_idx]);
     bx = WIDTH / 2 - 2;
     by = 0;
-    if (!canMove(0, 0)) {
-        draw();
-        gameover = true;
-    }
 }
+
+//////////////// end of helpers /////////////////////
 
 void init() {
     gameover = false;
@@ -209,6 +173,51 @@ void init() {
     score = 0;
     bx = WIDTH / 2 - 2;
     by = 0;
+    for (int i = 0; i < HEIGHT; ++i) {
+        for (int j = 0; j < WIDTH; ++j) {
+            grid[i][j] = 0;
+        }
+    }
+    drop = false;
+    newShape();
+}
+
+void draw() {
+    clear();
+    if (gameover) {
+        printw("GAME OVER! Your score: %d", score);
+        printw("\nPress 'Q' to quit; Press 'R' to restart");
+    } else {
+        // row index ranging from [0, HEIGHT-1], which is with the fence constraint, which is consistent with grid's height: HEIGHT
+        for (int i = 0; i < HEIGHT; ++i) {
+            mvaddch(i, 0, '|');  // side fence
+            // but column index is ranging from [0, WIDTH+1], including side fences on left & right, while index: [1, WIDTH] is within fence constraint, and consistent with grid's width: WIDTH.
+            // so whenver accessing the graphic column index: j, (j-1) corresponds to the grid's cloumn index
+            for (int j = 1; j < WIDTH + 1; ++j) {
+                char ch = ' ';
+                if (grid[i][j - 1] == 1) {
+                    ch = '@';
+                }
+                for (int bi = 0; bi < 4; ++bi) {
+                    for (int bj = 0; bj < 4; ++bj) {
+                        int x = bx + bj;
+                        int y = by + bi;
+                        if (x == j - 1 && y == i && block[bi][bj]) {
+                            ch = '@';
+                        }
+                    }
+                }
+                mvaddch(i, j, ch);
+            }
+            mvaddch(i, WIDTH + 1, '|');  // side fence
+        }
+        // botton fence
+        for (int i = 0; i < WIDTH + 2; ++i) {
+            mvaddch(HEIGHT, i, '=');
+        }
+        printw("\nscore: %d", score);
+    }
+    refresh();
 }
 
 void input() {
@@ -225,19 +234,34 @@ void input() {
         quit = true;
     else if (key == 'r')
         init();
-    return;
 }
 
 void logic() {
-    if (canMove(0, 1)) {
-        by++;
-    } else {
-        placeBlock();
-        clearlines();
-        newShape();
+    if (drop) {
+        // if block can still move down, let it drop
+        if (canMove(0, 1)) {
+            by++;
+        }
+        // if block reaches stack, fix the block on stack -> clear lines if necessary -> generate new shape
+        else {
+            landBlock();
+            clearlines();
+            newShape();
+            if (!canMove(0, 0)) {
+                gameover = true;
+            }
+        }
+        speed_counter = 0;
     }
 
-    return;
+    // if (canMove(0, 1)) {
+    //     by++;
+    // }
+    // else {
+    //     landBlock();
+    //     clearlines();
+    //     newShape();
+    // }
 }
 
 int main() {
@@ -250,10 +274,13 @@ int main() {
 
     init();
     while (!quit) {
+        this_thread::sleep_for(50ms);
+        speed_counter++;
+        drop = (speed_counter == nspeed);
         draw();
         input();
         logic();
-        napms(100);
+        // napms(40);
     }
     endwin();
     return 0;
