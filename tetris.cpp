@@ -22,45 +22,45 @@ int grid[HEIGHT][WIDTH];
 const int SHAPES[7][4][4] = {
     // I
     {
-        {0, 0, 0, 0},
         {1, 1, 1, 1},
+        {0, 0, 0, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}},
     // O
     {
+        {1, 1, 0, 0},
+        {1, 1, 0, 0},
         {0, 0, 0, 0},
-        {0, 1, 1, 0},
-        {0, 1, 1, 0},
         {0, 0, 0, 0}},
     // T
     {
-        {0, 0, 0, 0},
         {1, 1, 1, 0},
         {0, 1, 0, 0},
+        {0, 0, 0, 0},
         {0, 0, 0, 0}},
     // S
     {
-        {0, 0, 0, 0},
         {0, 1, 1, 0},
         {1, 1, 0, 0},
+        {0, 0, 0, 0},
         {0, 0, 0, 0}},
     // Z
     {
-        {0, 0, 0, 0},
+        {1, 1, 0, 0},
         {0, 1, 1, 0},
-        {0, 0, 1, 1},
+        {0, 0, 0, 0},
         {0, 0, 0, 0}},
     // J
     {
-        {0, 0, 0, 0},
-        {1, 1, 1, 0},
-        {0, 0, 1, 0},
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {1, 1, 0, 0},
         {0, 0, 0, 0}},
     // L
     {
-        {0, 0, 0, 0},
-        {1, 1, 1, 0},
         {1, 0, 0, 0},
+        {1, 0, 0, 0},
+        {1, 1, 0, 0},
         {0, 0, 0, 0}}};
 
 int score;
@@ -81,7 +81,7 @@ void rotate() {
     int temp[4][4] = {0};
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            temp[j][3 - i] = block[i][j];
+            temp[j][3 - i] = block[i][j]; // rotate matrix 90 degree clockwise
         }
     }
     // check or collision
@@ -108,8 +108,8 @@ bool canMove(int dx, int dy) {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             if (block[i][j]) {
-                int x = bx + j + dx;
-                int y = by + i + dy;
+                int x = bx + j + dx; // proposed x coord
+                int y = by + i + dy; // proposed y coord
                 if (x < 0 || x >= WIDTH || y >= HEIGHT || (y >= 0 && grid[y][x])) {
                     return false;
                 }
@@ -242,14 +242,14 @@ void logic() {
         if (canMove(0, 1)) {
             by++;
         }
+        else if (!canMove(0, 0)) {
+            gameover = true;
+        }
         // if block reaches stack, fix the block on stack -> clear lines if necessary -> generate new shape
         else {
             landBlock();
             clearlines();
             newShape();
-            if (!canMove(0, 0)) {
-                gameover = true;
-            }
         }
         speed_counter = 0;
     }
