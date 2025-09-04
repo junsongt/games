@@ -1,8 +1,11 @@
 #include <curses.h>
+#include <unistd.h>
 
+#include <chrono>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
-#include <vector>
+#include <thread>
 using namespace std;
 
 bool gameover;
@@ -18,6 +21,10 @@ enum directions { STOP = 0,
                   DOWN };
 directions dir;  // direction of head
 
+const int nspeed = 20;
+int speed_counter = 0;
+bool mov;
+
 void init() {
     gameover = false;
     quit = false;
@@ -28,6 +35,8 @@ void init() {
     ball_y = rand() % (HEIGHT - 2) + 1;
     score = 0;
     N = 0;
+
+    mov = false;
 }
 
 void draw() {
@@ -35,8 +44,7 @@ void draw() {
     if (gameover) {
         printw("GAME OVER! Your score: %d", score);
         printw("\nPress 'Q' to quit; Press 'R' to restart");
-    } 
-    else {
+    } else {
         for (int i = 0; i < WIDTH; i++) {
             mvaddch(0, i, '=');
         }
@@ -97,88 +105,92 @@ void input() {
 }
 
 void logic() {
-    directions v = dir;  // initialize the velocity of each segment in the tail
+    if (mov) {
+        directions v = dir;  // initialize the velocity of each segment in the tail
 
-    // curr pos is the prev pos after one step move, so iteratively move each one step forward
-    int prev_x = x, prev_y = y;
-    if (dir != STOP) {
-        for (int i = 0; i < N; i++) {
-            int curr_x = tail_x[i];
-            int curr_y = tail_y[i];
+        // curr pos is the prev pos after one step move, so iteratively move each one step forward
+        int prev_x = x, prev_y = y;
+        if (dir != STOP) {
+            for (int i = 0; i < N; i++) {
+                int curr_x = tail_x[i];
+                int curr_y = tail_y[i];
 
-            if (curr_x > prev_x && curr_y == prev_y) v = LEFT;
-            if (curr_x < prev_x && curr_y == prev_y) v = RIGHT;
-            if (curr_x == prev_x && curr_y > prev_y) v = UP;
-            if (curr_x == prev_x && curr_y < prev_y) v = DOWN;
+                if (curr_x > prev_x && curr_y == prev_y) v = LEFT;
+                if (curr_x < prev_x && curr_y == prev_y) v = RIGHT;
+                if (curr_x == prev_x && curr_y > prev_y) v = UP;
+                if (curr_x == prev_x && curr_y < prev_y) v = DOWN;
 
-            tail_x[i] = prev_x;
-            tail_y[i] = prev_y;
-            prev_x = curr_x;
-            prev_y = curr_y;
+                tail_x[i] = prev_x;
+                tail_y[i] = prev_y;
+                prev_x = curr_x;
+                prev_y = curr_y;
+            }
+            speed_counter = 0;
         }
-    }
 
-    switch (dir) {
-        case LEFT:
-            --x;
-            break;
-        case RIGHT:
-            ++x;
-            break;
-        case UP:
-            --y;
-            break;
-        case DOWN:
-            ++y;
-            break;
-        default:
-            break;
-    }
-    // if snake hits the wall, gameover
-    if (x >= WIDTH - 1 || x <= 0 || y <= 0 || y >= HEIGHT - 1) {
-        gameover = true;
-    }
-
-    // // free of wall-death modifier
-    // x = (x+WIDTH) % WIDTH;
-    // y = (y+HEIGHT) % HEIGHT;
-
-    // if the snake bites its tail, gameover
-    for (int i = 0; i < N; i++) {
-        if (x == tail_x[i] && y == tail_y[i]) {
-            gameover = true;
-        }
-    }
-    // if snake eats the food, grow
-    if (x == ball_x && y == ball_y) {
-        score += 10;
-        ball_x = rand() % (WIDTH - 2) + 1;
-        ball_y = rand() % (HEIGHT - 2) + 1;
-
-        int end_x = N == 0 ? x : tail_x[N - 1];
-        int end_y = N == 0 ? y : tail_y[N - 1];
-        N++;  // increase the tail of the snake by 1
-        // increment the tail at the moment when the food eaten, pos depending on the velocity of the tail end
-        switch (v) {
+        switch (dir) {
             case LEFT:
-                tail_x[N - 1] = end_x + 1;
-                tail_y[N - 1] = end_y;
+                --x;
                 break;
             case RIGHT:
-                tail_x[N - 1] = end_x - 1;
-                tail_y[N - 1] = end_y;
+                ++x;
                 break;
             case UP:
-                tail_x[N - 1] = end_x;
-                tail_y[N - 1] = end_y + 1;
+                --y;
                 break;
             case DOWN:
-                tail_x[N - 1] = end_x;
-                tail_y[N - 1] = end_y - 1;
+                ++y;
+                break;
+            default:
                 break;
         }
+        // if snake hits the wall, gameover
+        if (x >= WIDTH - 1 || x <= 0 || y <= 0 || y >= HEIGHT - 1) {
+            gameover = true;
+        }
+
+        // // free of wall-death modifier
+        // x = (x+WIDTH) % WIDTH;
+        // y = (y+HEIGHT) % HEIGHT;
+
+        // if the snake bites its tail, gameover
+        for (int i = 0; i < N; i++) {
+            if (x == tail_x[i] && y == tail_y[i]) {
+                gameover = true;
+            }
+        }
+        // if snake eats the food, grow
+        if (x == ball_x && y == ball_y) {
+            score += 10;
+            ball_x = rand() % (WIDTH - 2) + 1;
+            ball_y = rand() % (HEIGHT - 2) + 1;
+
+            int end_x = N == 0 ? x : tail_x[N - 1];
+            int end_y = N == 0 ? y : tail_y[N - 1];
+            N++;  // increase the tail of the snake by 1
+            // increment the tail at the moment when the food eaten, pos depending on the velocity of the tail end
+            switch (v) {
+                case LEFT:
+                    tail_x[N - 1] = end_x + 1;
+                    tail_y[N - 1] = end_y;
+                    break;
+                case RIGHT:
+                    tail_x[N - 1] = end_x - 1;
+                    tail_y[N - 1] = end_y;
+                    break;
+                case UP:
+                    tail_x[N - 1] = end_x;
+                    tail_y[N - 1] = end_y + 1;
+                    break;
+                case DOWN:
+                    tail_x[N - 1] = end_x;
+                    tail_y[N - 1] = end_y - 1;
+                    break;
+            }
+        }
+        speed_counter = 0;
+        // dir = STOP;
     }
-    dir = STOP;
 }
 
 int main() {
@@ -191,10 +203,13 @@ int main() {
 
     init();
     while (!quit) {
+        this_thread::sleep_for(50ms);
+        speed_counter++;
+        mov = (speed_counter == nspeed);
         draw();
         input();
         logic();
-        napms(20);
+        // napms(20);
     }
     endwin();
     return 0;
