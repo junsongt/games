@@ -82,18 +82,23 @@ void draw() {
 }
 
 void input() {
-    switch (getch()) {
+    int key = getch();
+    switch (key) {
         case KEY_UP:
             dir = UP;
+            --y;
             break;
         case KEY_DOWN:
             dir = DOWN;
+            ++y;
             break;
         case KEY_LEFT:
             dir = LEFT;
+            --x;
             break;
         case KEY_RIGHT:
             dir = RIGHT;
+            ++x;
             break;
         case 'q':
             quit = true;
@@ -125,25 +130,25 @@ void logic() {
                 prev_x = curr_x;
                 prev_y = curr_y;
             }
-            speed_counter = 0;
         }
 
-        switch (dir) {
-            case LEFT:
-                --x;
-                break;
-            case RIGHT:
-                ++x;
-                break;
-            case UP:
-                --y;
-                break;
-            case DOWN:
-                ++y;
-                break;
-            default:
-                break;
-        }
+        // switch (dir) {
+        //     case LEFT:
+        //         --x;
+        //         break;
+        //     case RIGHT:
+        //         ++x;
+        //         break;
+        //     case UP:
+        //         --y;
+        //         break;
+        //     case DOWN:
+        //         ++y;
+        //         break;
+        //     default:
+        //         break;
+        // }
+        
         // if snake hits the wall, gameover
         if (x >= WIDTH - 1 || x <= 0 || y <= 0 || y >= HEIGHT - 1) {
             gameover = true;
