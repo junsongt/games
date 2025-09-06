@@ -11,7 +11,7 @@ using namespace std;
 bool gameover;
 bool quit;
 const int WIDTH = 20, HEIGHT = 20;
-int x, y, ball_x, ball_y, score;
+int x, y, ball_x, ball_y, score;  // (x, y) coord of the head of snake; (ball_x, ball_y) coord of ball
 int tail_x[100], tail_y[100];
 int N;  // length of tail, excluding head
 enum directions { STOP = 0,
@@ -26,9 +26,10 @@ int speed_counter = 0;
 bool auto_mov;
 directions v; // the velocity of each segment in the tail
 
-void progress() {
-    int prev_x = x, prev_y = y;
+void crawl() {
+    v = dir; // ensure the velocity is consistent with the head dir so that v can be passed like wave thru the tail end
     if (dir != STOP) {
+        int prev_x = x, prev_y = y;
         for (int i = 0; i < N; i++) {
             int curr_x = tail_x[i];
             int curr_y = tail_y[i];
@@ -74,80 +75,13 @@ void eat_n_grow() {
                 tail_x[N - 1] = end_x;
                 tail_y[N - 1] = end_y - 1;
                 break;
+            default:
+                break;
         }
     }
 
 }
 
-
-// void update_tail() {
-//     directions v = dir;  // initialize the velocity of each segment in the tail
-//     // curr pos is the prev pos after one step auto_move, so iteratively auto_move each one step forward
-//     int prev_x = x, prev_y = y;
-//     if (dir != STOP) {
-//         for (int i = 0; i < N; i++) {
-//             int curr_x = tail_x[i];
-//             int curr_y = tail_y[i];
-
-//             if (curr_x > prev_x && curr_y == prev_y) v = LEFT;
-//             if (curr_x < prev_x && curr_y == prev_y) v = RIGHT;
-//             if (curr_x == prev_x && curr_y > prev_y) v = UP;
-//             if (curr_x == prev_x && curr_y < prev_y) v = DOWN;
-
-//             tail_x[i] = prev_x;
-//             tail_y[i] = prev_y;
-//             prev_x = curr_x;
-//             prev_y = curr_y;
-//         }
-//     }
-//     switch (dir) {
-//         case LEFT:
-//             --x;
-//             break;
-//         case RIGHT:
-//             ++x;
-//             break;
-//         case UP:
-//             --y;
-//             break;
-//         case DOWN:
-//             ++y;
-//             break;
-//         default:
-//             break;
-//     }
-
-//     // if snake eats the food, grow
-//     if (x == ball_x && y == ball_y) {
-//         score += 10;
-//         ball_x = rand() % (WIDTH - 2) + 1;
-//         ball_y = rand() % (HEIGHT - 2) + 1;
-
-
-//         int end_x = N == 0 ? x : tail_x[N - 1];
-//         int end_y = N == 0 ? y : tail_y[N - 1];
-//         N++;  // increase the tail of the snake by 1
-//         // increment the tail at the moment when the food eaten, pos depending on the velocity of the tail end
-//         switch (v) {
-//             case LEFT:
-//                 tail_x[N - 1] = end_x + 1;
-//                 tail_y[N - 1] = end_y;
-//                 break;
-//             case RIGHT:
-//                 tail_x[N - 1] = end_x - 1;
-//                 tail_y[N - 1] = end_y;
-//                 break;
-//             case UP:
-//                 tail_x[N - 1] = end_x;
-//                 tail_y[N - 1] = end_y + 1;
-//                 break;
-//             case DOWN:
-//                 tail_x[N - 1] = end_x;
-//                 tail_y[N - 1] = end_y - 1;
-//                 break;
-//         }
-//     }
-// }
 
 void init() {
     gameover = false;
@@ -210,25 +144,25 @@ void input() {
     switch (key) {
         case KEY_UP:
             dir = UP;
-            progress();
+            crawl();
             --y;
             eat_n_grow();
             break;
         case KEY_DOWN:
             dir = DOWN;
-            progress();
+            crawl();
             ++y;
             eat_n_grow();
             break;
         case KEY_LEFT:
             dir = LEFT;
-            progress();
+            crawl();
             --x;
             eat_n_grow();
             break;
         case KEY_RIGHT:
             dir = RIGHT;
-            progress();
+            crawl();
             ++x;
             eat_n_grow();
             break;
@@ -243,7 +177,7 @@ void input() {
 
 void logic() {
     if (auto_mov) {
-        progress();
+        crawl();
         switch (dir) {
             case LEFT:
                 --x;
@@ -256,8 +190,6 @@ void logic() {
                 break;
             case DOWN:
                 ++y;
-                break;
-            default:
                 break;
         }
         eat_n_grow();
@@ -272,11 +204,11 @@ void logic() {
         // y = (y+HEIGHT) % HEIGHT;
 
         // if the snake bites its tail, gameover
-        // for (int i = 0; i < N; i++) {
-        //     if (x == tail_x[i] && y == tail_y[i]) {
-        //         gameover = true;
-        //     }
-        // }
+        for (int i = 0; i < N; i++) {
+            if (x == tail_x[i] && y == tail_y[i]) {
+                gameover = true;
+            }
+        }
         speed_counter = 0;
     }
 }
