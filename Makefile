@@ -1,4 +1,6 @@
-snake: snake.cpp
-	g++ snake.cpp -o snake -lncursesw
+# snake: snake.cpp
+# 	g++ snake.cpp -o snake -lncursesw
 # tetris: tetris.cpp
 # 	g++ tetris.cpp -o tetris -lncursesw
+ttt: tic_tac_toe.cpp
+	g++ tic_tac_toe.cpp -o ttt -lncursesw
