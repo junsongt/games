@@ -22,6 +22,11 @@ int speed_counter = 0;
 // grid
 int grid[SIZE][SIZE];
 
+/*
+Coordinate mapping:
+For any pos: (x, y) in the console canvas, it maps to [(x-1)/2, (y-1)/2] in grid pos;
+conversely, any (x, y) in grid pos, maps to [(2x+1), (2y+1)] in console canvas
+*/
 
 // return true if there exists one rows forming a line
 bool row_check(int id) {
@@ -64,7 +69,7 @@ bool diag_check(int id) {
     }
     bool off_diag = true;
     for (int i = 0; i < SIZE; ++i) {
-        if (grid[i][SIZE-i] != id) {
+        if (grid[i][SIZE-1-i] != id) {
             off_diag = false;
         }
     }
@@ -77,13 +82,9 @@ bool judge_win(int id) {
 
 // settle the position and engage with opponent back and forth in 1 round
 void engage() {
-    /*
-    For any pos: (x, y), [(x-1)/2, (y-1)/2] correspond to the pos in grid
-    */
-
     // settle usr's coord
-
-    // settle bot's coord by searching best move
+    grid[(y-1)/2][(x-1)/2] = 1;
+    // settle bot's coord in grid by searching best move
 
 }
 
@@ -95,9 +96,11 @@ void init() {
     win = false;
     quit = false;
     // printw("Select mode: One player/Two players(o/t)");
+    x = 1;
+    y = 1;
 
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
+    for (int i = 0; i < SIZE; ++i) {
+        for (int j = 0; j < SIZE; ++j) {
             grid[i][j] = 0;
         }
     }
@@ -127,9 +130,21 @@ void draw() {
                     mvaddch(i, j, '|');
                 }
                 else {
-
                     // render the positions of usr and oppo
-                    mvaddch(i, j, ' ');
+                    if (i == y && j == x) {
+                        mvaddch(i, j, 'O');
+
+                    }
+                    else if (grid[(i-1)/2][(j-1)/2] == 1) {
+                        mvaddch(i, j, 'O');
+                    }
+                    else if (grid[(i-1)/2][(j-1)/2] == 2) {
+                        mvaddch(i, j, 'X');
+                    }
+                    else {
+                        mvaddch(i, j, ' ');
+                    }
+
                 }
             }
         }
@@ -156,7 +171,7 @@ void input() {
             // moving the potential position right
             x += 2;
             break;
-        case KEY_ENTER:
+        case '\n':
             // settle the position and engage with opponent back and forth in 1 round
             engage();
             break;
