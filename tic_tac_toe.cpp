@@ -5,11 +5,12 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <queue>
 #include <thread>
 using namespace std;
 
-bool lose; // you lose
-bool win; // you win
+bool lose;  // you lose
+bool win;   // you win
 bool quit;
 const int WIDTH = 7, HEIGHT = 7;
 const int SIZE = 3;
@@ -21,6 +22,8 @@ int speed_counter = 0;
 
 // grid
 int grid[SIZE][SIZE];
+
+queue<int*> threat_pos;
 
 /*
 Coordinate mapping:
@@ -58,7 +61,6 @@ bool col_check(int id) {
         }
     }
     return false;
-
 }
 bool diag_check(int id) {
     bool diag = true;
@@ -69,7 +71,7 @@ bool diag_check(int id) {
     }
     bool off_diag = true;
     for (int i = 0; i < SIZE; ++i) {
-        if (grid[i][SIZE-1-i] != id) {
+        if (grid[i][SIZE - 1 - i] != id) {
             off_diag = false;
         }
     }
@@ -80,16 +82,115 @@ bool judge_win(int id) {
     return row_check(id) || col_check(id) || diag_check(id);
 }
 
+bool threat() {
+    // // search over row & cols & diags make sure there is no impending threat for bot
+    // if (threat_pos.empty()) {
+    //     // row check
+    //     bool row_threat = false;
+    //     for (int i = 0; i < SIZE; ++i) {
+    //         int cnt = 0;
+    //         int avail_pos[2] = {-1, -1};
+    //         for (int j = 0; j < SIZE; ++j) {
+    //             if (grid[i][j] == 1) {
+    //                 cnt++;
+    //             }
+    //             if (grid[i][j] == 0) {
+    //                 avail_pos[0] = i, avail_pos[1] = j;
+    //             }
+    //         }
+    //         if (cnt == SIZE - 1) {
+    //             row_threat = true;
+    //             if (avail_pos[0] != -1 && avail_pos[1] != -1) {
+    //                 threat_pos.push(avail_pos);
+    //             }
+    //         }
+    //     }
+
+    //     // col check
+    //     bool col_threat = false;
+    //     for (int j = 0; j < SIZE; ++j) {
+    //         int cnt = 0;
+    //         int avail_pos[2] = {-1, -1};
+    //         for (int i = 0; i < SIZE; ++i) {
+    //             if (grid[i][j] == 1) {
+    //                 cnt++;
+    //             }
+    //             if (grid[i][j] == 0) {
+    //                 avail_pos[0] = i, avail_pos[1] = j;
+    //             }
+    //         }
+    //         if (cnt == SIZE - 1) {
+    //             col_threat = true;
+    //             if (avail_pos[0] != -1 && avail_pos[1] != -1) {
+    //                 threat_pos.push(avail_pos);
+    //             }
+    //         }
+    //     }
+
+    //     // diag & off-diag check
+    //     bool diag_threat = false;
+    //     int cnt = 0;
+    //     int avail_pos[2] = {-1, -1};
+    //     for (int i = 0; i < SIZE; ++i) {
+    //         if (grid[i][i] == 1) {
+    //             cnt++;
+    //         }
+    //         if (grid[i][i] == 0) {
+    //             avail_pos[0] = i, avail_pos[1] = i;
+    //         }
+    //     }
+    //     if (cnt == SIZE - 1) {
+    //         diag_threat = true;
+    //         if (avail_pos[0] != -1 && avail_pos[1] != -1) {
+    //             threat_pos.push(avail_pos);
+    //         }
+    //     }
+    //     cnt = 0;
+    //     avail_pos[0] = -1, avail_pos[1] = -1;
+
+    //     bool off_diag_threat = false;
+    //     for (int i = 0; i < SIZE; ++i) {
+    //         if (grid[i][SIZE - 1 - i] == 1) {
+    //             cnt++;
+    //         }
+    //         if (grid[i][SIZE - 1 - i] == 0) {
+    //             avail_pos[0] = i, avail_pos[1] = SIZE - 1 - i;
+    //         }
+    //     }
+    //     if (cnt == SIZE - 1) {
+    //         off_diag_threat = true;
+    //         if (avail_pos[0] != -1 && avail_pos[1] != -1) {
+    //             threat_pos.push(avail_pos);
+    //         }
+    //     }
+    // }
+    // return !threat_pos.empty();
+    return true;
+}
+
+// if threat is present, then plug in the hole to make a defense
+void defense() {
+    // int* place_to_defend = threat_pos.front();
+    // grid[place_to_defend[0]][place_to_defend[1]] = 2;
+    // threat_pos.pop();
+}
+
+// if no threat is present, then make aggressive move
+void attack() {
+    // scan the grid
+}
+
 // settle the position and engage with opponent back and forth in 1 round
 void engage() {
     // settle usr's coord
-    grid[(y-1)/2][(x-1)/2] = 1;
+    grid[(y - 1) / 2][(x - 1) / 2] = 1;
     // settle bot's coord in grid by searching best move
-
+    // if (threat()) {
+    //     defense();
+    // } else {
+    //     attack();
+    // }
 }
-
-
-
 
 void init() {
     lose = false;
@@ -104,7 +205,6 @@ void init() {
             grid[i][j] = 0;
         }
     }
-
 }
 
 void draw() {
@@ -112,39 +212,30 @@ void draw() {
     if (lose) {
         printw("GAME OVER! You lose!");
         printw("\nPress 'Q' to quit; Press 'R' to restart");
-    } 
-    else if (win) {
+    } else if (win) {
         printw("CONGRATULATIONS! You win!");
         printw("\nPress 'Q' to quit; Press 'R' to restart");
-    }
-    else {
+    } else {
         for (int i = 0; i < HEIGHT; ++i) {
             for (int j = 0; j < WIDTH; ++j) {
                 if (i % 2 == 0 && j % 2 == 0) {
                     mvaddch(i, j, '+');
-                }
-                else if (i % 2 == 0 && j % 2 != 0) {
+                } else if (i % 2 == 0 && j % 2 != 0) {
                     mvaddch(i, j, '-');
-                }
-                else if (i % 2 != 0 && j % 2 == 0) {
+                } else if (i % 2 != 0 && j % 2 == 0) {
                     mvaddch(i, j, '|');
-                }
-                else {
+                } else {
                     // render the positions of usr and oppo
                     if (i == y && j == x) {
                         mvaddch(i, j, 'O');
 
-                    }
-                    else if (grid[(i-1)/2][(j-1)/2] == 1) {
+                    } else if (grid[(i - 1) / 2][(j - 1) / 2] == 1) {
                         mvaddch(i, j, 'O');
-                    }
-                    else if (grid[(i-1)/2][(j-1)/2] == 2) {
+                    } else if (grid[(i - 1) / 2][(j - 1) / 2] == 2) {
                         mvaddch(i, j, 'X');
-                    }
-                    else {
+                    } else {
                         mvaddch(i, j, ' ');
                     }
-
                 }
             }
         }
@@ -182,20 +273,15 @@ void input() {
             init();
             break;
     }
-
 }
 
 void logic() {
     if (judge_win(1) && !judge_win(2)) {
         win = true;
-    }
-    else if (!judge_win(1) && judge_win(2)) {
+    } else if (!judge_win(1) && judge_win(2)) {
         lose = true;
-    }
-    else {
+    } else {
         // coord can't exceed boundary
-
-
     }
 }
 
